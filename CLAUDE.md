@@ -177,10 +177,14 @@ materially decay versus in-sample before a strategy is considered validated.
   `validated` status reflects the raw strategy edge, not the edge with real risk controls
   active; `incubating` (which runs with real risk controls) is what actually proves the
   combination is trustworthy — consistent with the Strategy Lifecycle below.
-- `runner.py` currently backtests every single-ticker candidate against one shared ticker
-  (default SPY) — `StrategySpec` has no ticker field of its own, so nothing yet tracks
-  which ticker a discovered rule should actually run against. Fine while there's no
-  watchlist-to-strategy mapping; revisit before this matters for real capital allocation.
+- **Fixed**: `runner.py` used to backtest every single-ticker candidate against one
+  hardcoded ticker (SPY) regardless of the strategy. It now validates each candidate
+  against every ticker in `config.yaml`'s `strategy_validation.universe`, and promotes
+  using whichever ticker gave the best passing result — that ticker is stored on the
+  record (`record["ticker"]`) and is what `execution_alpaca/paper_trading_engine.py`
+  actually trades during incubation. `StrategySpec` itself still carries no ticker of its
+  own — a strategy is a rule, not a rule-plus-instrument — so a candidate that's rejected
+  on every universe ticker is genuinely rejected, not just untested against the right one.
 
 ## Pairs trading (a genuinely different shape)
 
@@ -254,10 +258,12 @@ instead of being forced through the single-ticker path:
   for incubation to actually progress over its 60+ day window. A single Claude Code session
   cannot itself run a multi-week background loop; this needs a real scheduler (cron /
   Windows Task Scheduler / similar) once the user is ready to let it run unattended.
+- `paper_trading_engine.py` trades each record's own `record["ticker"]` (set by `runner.py`
+  during validation), fetching price data once per unique ticker needed per cycle, not once
+  per record — no longer the single-shared-ticker limitation this section used to describe.
 - Known limitations, carried forward honestly rather than hidden: long-only (`StrategySpec`
   doesn't model a short side yet); pairs-trading incubation isn't wired into
-  `paper_trading_engine.py`; every incubating strategy is still checked against one shared
-  `ticker` (same limitation as `runner.py`, above).
+  `paper_trading_engine.py`.
 
 ## Strategy lifecycle — bin the losers, keep the winners
 
@@ -404,7 +410,7 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
 6. **Strategy Library** (done) — hand-designed classic reference strategies for all four archetypes: `classic_rsi_reversion`, `classic_macd_momentum`, `classic_channel_breakout` (added a proper `CHANNEL_HIGH`/`CHANNEL_LOW` indicator + per-condition `period` override to the schema for this), and pairs trading's own `PairsSpec`/cointegration/spread stack (`strategies/`, `backtester/pairs_engine.py`, `quant_engine/validation/pairs_validator.py` + `pairs_runner.py` — see "Pairs trading" above). `library.py` seeds all of them into the registry automatically.
 7. **Execution & Risk Engine** (done) — IBKR (`ib_insync`) and Alpaca (`alpaca-py`) bracket-order connectors (both refuse a naked order), NZT market-hours conversion, ATR/Kelly position sizing, stop/target + trailing-stop logic, and the hardcoded circuit breakers, all wired through `quant_engine/validation/incubation.py`'s forward-test decision logic and `execution_alpaca/paper_trading_engine.py`'s one-cycle-at-a-time paper execution loop (`execution_ibkr/`, `execution_alpaca/`, `risk_management/` — see "Execution & incubation engine" above for what's real vs. unverified-pending-credentials/TWS).
-8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle already; only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call it repeatedly, extend incubation to pairs-trading candidates, and resolve the single-shared-ticker limitation before this matters for real capital allocation.
+8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle already, each candidate validated/traded on its own best-fit ticker from `strategy_validation.universe` (the single-shared-ticker limitation is fixed); only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call option `[4]` repeatedly, and extend incubation to pairs-trading candidates.
 9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.
 
 Confirm with the user before starting each new phase — build and commit one phase at a time.

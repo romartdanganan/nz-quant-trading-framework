@@ -42,6 +42,18 @@ validation_thresholds:
   apply_fx_fees: true
   fx_fee_pct: 0.005
 
+# Universe each single-ticker strategy candidate is validated/incubated against (fixes a
+# previously-documented limitation: candidates used to all be tested against one hardcoded
+# ticker regardless of the strategy). A candidate is promoted using whichever ticker in
+# this list gives its best passing result; that ticker is then what gets traded.
+strategy_validation:
+  universe:
+    - SPY
+    - AAPL
+    - MSFT
+    - NVDA
+    - TSLA
+
 # Forward-testing / incubation gate (Strategy Lifecycle in CLAUDE.md). A "validated"
 # (backtest-passed) strategy must clear this live-but-unfunded forward test before it is
 # "proven" and allowed real paper-trading capital. Implemented in Phase 7/8 — values here

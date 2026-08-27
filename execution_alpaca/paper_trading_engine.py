@@ -11,9 +11,13 @@ close) for incubation to actually progress over its 60+ day window — a single 
 session isn't a suitable place to run a multi-week continuous process (see
 quant_engine/validation/incubation.py's own limitation note).
 
-Known limitations: long-only (StrategySpec doesn't model short-side direction yet); pairs-
-trading incubation isn't wired here; every strategy is still checked against one shared
-`ticker` (the same limitation noted on quant_engine/validation/runner.py).
+Each record trades whichever ticker runner.py recorded it as validated on
+(record["ticker"]) — falls back to DEFAULT_TICKER only for older/manually-seeded records
+that predate that field. Price data is fetched once per unique ticker needed this cycle,
+not once per record.
+
+Known limitations: long-only (StrategySpec doesn't model short-side direction yet);
+pairs-trading incubation isn't wired here.
 """
 from __future__ import annotations
 
@@ -41,7 +45,7 @@ DEFAULT_TICKER = "SPY"
 SIMULATED_STARTING_EQUITY = 100_000.0  # incubation is unfunded — sizing/tracking is on paper
 
 
-def run_incubation_cycle(registry: StrategyRegistry | None = None, ticker: str = DEFAULT_TICKER) -> dict:
+def run_incubation_cycle(registry: StrategyRegistry | None = None) -> dict:
     registry = registry or StrategyRegistry()
     records = [r for r in registry.list(status="incubating") if r.get("kind", "single") == "single"]
 
@@ -50,14 +54,23 @@ def run_incubation_cycle(registry: StrategyRegistry | None = None, ticker: str =
 
     end = date.today()
     start = end - timedelta(days=LOOKBACK_DAYS)
-    try:
-        price_data = load_price_data(ticker, start, end)
-    except PriceDataUnavailable as exc:
-        logger.warning("Could not load price data for %s: %s", ticker, exc)
-        return {"records": len(records), "processed": 0, "errored": len(records)}
+    price_data_cache: dict[str, object] = {}
 
     processed = errored = 0
     for record in records:
+        ticker = record.get("ticker", DEFAULT_TICKER)
+        if ticker not in price_data_cache:
+            try:
+                price_data_cache[ticker] = load_price_data(ticker, start, end)
+            except PriceDataUnavailable as exc:
+                logger.warning("Could not load price data for %s: %s", ticker, exc)
+                price_data_cache[ticker] = None
+
+        price_data = price_data_cache[ticker]
+        if price_data is None:
+            errored += 1
+            continue
+
         try:
             _process_one_cycle(record, price_data)
             processed += 1

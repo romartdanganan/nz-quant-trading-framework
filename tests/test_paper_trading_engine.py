@@ -59,6 +59,39 @@ def test_run_incubation_cycle_handles_missing_price_data(tmp_path, monkeypatch):
     assert summary == {"records": 1, "processed": 0, "errored": 1}
 
 
+def test_run_incubation_cycle_uses_each_records_own_ticker_and_caches_loads(tmp_path, monkeypatch):
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    record_a = registry.add_candidate(make_spec())
+    registry.promote_to_validated(record_a["id"], {"sharpe_ratio": 2.0, "max_drawdown_pct": 0.05}, "ok")
+    registry.start_incubation(record_a["id"])
+    registry.get(record_a["id"])["ticker"] = "AAPL"
+
+    record_b = registry.add_candidate(make_spec())
+    registry.promote_to_validated(record_b["id"], {"sharpe_ratio": 2.0, "max_drawdown_pct": 0.05}, "ok")
+    registry.start_incubation(record_b["id"])
+    registry.get(record_b["id"])["ticker"] = "AAPL"  # same ticker as record_a — should load once
+
+    record_c = registry.add_candidate(make_spec())
+    registry.promote_to_validated(record_c["id"], {"sharpe_ratio": 2.0, "max_drawdown_pct": 0.05}, "ok")
+    registry.start_incubation(record_c["id"])
+    registry.get(record_c["id"])["ticker"] = "MSFT"
+
+    load_calls = []
+
+    def fake_load(ticker, start, end):
+        load_calls.append(ticker)
+        return make_price_data(close_price=100.0)
+
+    monkeypatch.setattr(engine, "load_price_data", fake_load)
+    _patch_signals(monkeypatch, entry=False, exit_=False)
+    monkeypatch.setattr(engine, "get_env", lambda key, default=None: None)
+
+    summary = engine.run_incubation_cycle(registry=registry)
+
+    assert summary == {"records": 3, "processed": 3, "errored": 0}
+    assert sorted(load_calls) == ["AAPL", "MSFT"]  # AAPL loaded once despite two records
+
+
 def test_process_one_cycle_opens_position_on_entry_signal(monkeypatch):
     _patch_signals(monkeypatch, entry=True, exit_=False)
     monkeypatch.setattr(engine, "get_env", lambda key, default=None: None)  # no Alpaca -> shadow mode
