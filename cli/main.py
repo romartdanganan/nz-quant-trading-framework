@@ -17,6 +17,7 @@ MENU = """
   [3] Run AI Screener
   [4] Run Incubation Cycle (paper trading forward-test)
   [5] Research Briefing (news, earnings, fundamentals — for manual decisions)
+  [6] Generate Dashboard (visual status of all strategies)
   [0] Exit
 """
 
@@ -128,12 +129,21 @@ def run_research_briefing() -> None:
     )
 
 
+def generate_dashboard() -> None:
+    from dashboard.generator import generate_dashboard as build_dashboard
+
+    output_path = build_dashboard()
+    console.print(f"[cyan]Dashboard written to {output_path.resolve()}[/cyan]")
+    console.print("[yellow]Open that file in a browser to view it — regenerate anytime by running this option again.[/yellow]")
+
+
 ACTIONS = {
     "1": search_online_strategies,
     "2": backtest_and_validate,
     "3": run_ai_screener,
     "4": launch_paper_trading,
     "5": run_research_briefing,
+    "6": generate_dashboard,
 }
 
 

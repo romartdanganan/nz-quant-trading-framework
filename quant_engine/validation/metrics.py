@@ -11,6 +11,11 @@ import numpy as np
 import pandas as pd
 
 TRADING_DAYS_PER_YEAR = 252
+# Cap for "no losing trades yet" rather than true float("inf") — the registry is
+# serialized to JSON (strategy_registry.json, read by the dashboard's JS JSON.parse), and
+# JSON has no Infinity token; Python's json module would silently write the non-standard
+# `Infinity` literal, which breaks in any strict JSON consumer.
+UNCAPPED_PROFIT_FACTOR = 999.0
 
 
 @dataclass(frozen=True)
@@ -42,15 +47,15 @@ def compute_max_drawdown(equity_curve: pd.Series) -> float:
 
 def compute_profit_factor(trades: list[dict]) -> float:
     """Gross profit / gross loss across closed trades. Returns 0.0 with no losing trades
-    and no winning trades either (nothing to divide); returns inf if there are wins but
-    zero losses.
+    and no winning trades either (nothing to divide); returns UNCAPPED_PROFIT_FACTOR (not
+    literal infinity — see that constant's docstring) if there are wins but zero losses.
     """
     pnls = [trade.get("pnl_comm", trade.get("pnl", 0.0)) for trade in trades]
     gross_profit = sum(pnl for pnl in pnls if pnl > 0)
     gross_loss = -sum(pnl for pnl in pnls if pnl < 0)
 
     if gross_loss == 0:
-        return float("inf") if gross_profit > 0 else 0.0
+        return UNCAPPED_PROFIT_FACTOR if gross_profit > 0 else 0.0
     return gross_profit / gross_loss
 
 

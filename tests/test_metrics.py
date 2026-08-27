@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from quant_engine.validation.metrics import (
+    UNCAPPED_PROFIT_FACTOR,
     compute_max_drawdown,
     compute_metrics,
     compute_profit_factor,
@@ -29,9 +30,13 @@ def test_compute_profit_factor_mixed_trades():
     assert compute_profit_factor(trades) == pytest.approx(4.0)  # 300 / 75
 
 
-def test_compute_profit_factor_no_losses_is_infinite():
+def test_compute_profit_factor_no_losses_is_capped_not_infinite():
     trades = [{"pnl_comm": 100}, {"pnl_comm": 50}]
-    assert compute_profit_factor(trades) == float("inf")
+    # capped rather than float("inf") so the value survives JSON round-tripping
+    # (the registry file is read by the dashboard's JS JSON.parse)
+    assert compute_profit_factor(trades) == UNCAPPED_PROFIT_FACTOR
+    import json
+    json.dumps(compute_profit_factor(trades))  # must not produce the non-standard Infinity token
 
 
 def test_compute_profit_factor_no_trades_is_zero():

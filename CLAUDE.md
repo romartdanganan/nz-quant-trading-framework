@@ -68,7 +68,9 @@ risk_management/
   position_sizing.py   # Phase 7 — ATR/Kelly sizing, hard-capped by max_position_size_pct
   stop_target.py        # Phase 7 — stop-loss/target-profit + trailing-stop ratchet
   circuit_breakers.py   # Phase 7 — hardcoded, non-negotiable: stop-loss required, position cap, daily-loss halt
-cli/                  # Interactive dashboard entrypoint (python -m cli.main)
+cli/                  # Interactive terminal menu entrypoint (python -m cli.main)
+dashboard/generator.py # visual HTML status dashboard (registry pipeline breakdown, Sharpe
+                        # comparison, equity curves) — local file, CLI option [6], see below
 config/               # settings.py loads .env + config.yaml into one Settings object
 data/                 # historical/, cache/, logs/ — gitignored, never commit market data
 tests/
@@ -172,6 +174,12 @@ fees (`quant_engine/validation/`, thresholds in `config.yaml` under `validation_
 materially decay versus in-sample before a strategy is considered validated.
 
 **Known Phase 4 backtest engine limitations** (honest, not silently papered over):
+- **Fixed**: `compute_profit_factor()` used to return Python's `float("inf")` for a
+  strategy with wins and zero losses. `strategy_registry.json` is read by the dashboard's
+  JS `JSON.parse()`, and JSON has no Infinity token — Python's `json` module silently wrote
+  the non-standard `Infinity` literal, which breaks in any strict JSON consumer. It now
+  returns `UNCAPPED_PROFIT_FACTOR` (999.0) instead — a documented cap, not a silent
+  truncation; the pass/fail threshold comparison is unaffected either way.
 - `backtester/signals.py` rejects `BOLLINGER_BANDS` conditions outright
   (`UnsupportedIndicatorError`) rather than guessing which band edge a single threshold
   means — a strategy using it is rejected at the backtest stage, not mis-evaluated.
@@ -267,6 +275,32 @@ instead of being forced through the single-ticker path:
 - Known limitations, carried forward honestly rather than hidden: long-only (`StrategySpec`
   doesn't model a short side yet); pairs-trading incubation isn't wired into
   `paper_trading_engine.py`.
+
+## Visual status dashboard
+
+`dashboard/generator.py`'s `generate_dashboard()` (CLI option `[6]`) reads
+`data/strategy_registry.json` and writes a self-contained local HTML file
+(`reports/dashboard.html`, gitignored — it's a regenerable report, not source) showing:
+pipeline status breakdown (candidate/validated/incubating/proven/rejected as a bar chart),
+a Sharpe-ratio comparison across every backtested strategy (colored pass/fail against the
+required threshold, with a reference line), incubation equity curves for anything with
+enough history, and a full sortable-by-eye table of every strategy with its metrics and
+last outcome. Regenerate anytime — it always reflects current registry state.
+
+This is a plain local file opened directly in a browser, not a claude.ai Artifact, so none
+of the Artifact tool's CSP restrictions apply — but colors are drawn from the same
+validated reference palette the `dataviz` skill uses for Artifacts (light/dark via
+`prefers-color-scheme`), for consistency and accessibility. Charts are hand-rendered inline
+SVG computed at generation time — no JS charting library, so the file works fully offline.
+Live-verified by actually opening the generated file in a real browser (via a local
+`python -m http.server`, since the browser-automation extension can't load `file://` URLs
+directly) — dark mode, all four charts, and the table all render correctly.
+
+**Every user-supplied or registry-derived string (strategy name, rejection reason, ticker)
+is HTML-escaped before being embedded** — registry reason strings routinely contain literal
+`<=`/`>=` (e.g. `"Sharpe 0.05 <= required 1.5"`), which would silently break the page's
+markup if injected raw. Any future change to this module must keep every such field passed
+through `html.escape()`.
 
 ## Strategy lifecycle — bin the losers, keep the winners
 
