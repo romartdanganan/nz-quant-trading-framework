@@ -41,6 +41,16 @@ validation_thresholds:
   apply_fx_fees: true
   fx_fee_pct: 0.005
 
+# Forward-testing / incubation gate (Strategy Lifecycle in CLAUDE.md). A "validated"
+# (backtest-passed) strategy must clear this live-but-unfunded forward test before it is
+# "proven" and allowed real paper-trading capital. Implemented in Phase 7/8 — values here
+# are placeholders to be tuned once the incubation engine exists.
+incubation:
+  min_days: 30
+  min_trades: 20
+  max_sharpe_decay_pct: 0.30       # incubation Sharpe may not fall more than 30% below backtest Sharpe
+  max_drawdown_overshoot_pct: 0.05 # incubation MaxDD may not exceed backtest MaxDD by more than 5 pts
+
 risk_management:
   position_sizing_method: atr_kelly     # atr | kelly | atr_kelly
   atr_period: 14

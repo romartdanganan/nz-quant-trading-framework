@@ -4,7 +4,7 @@ alpaca-py==0.33.1
 
 # --- Data & market data ---
 yfinance==0.2.54
-requests==2.32.3
+requests==2.34.2
 beautifulsoup4==4.12.3
 lxml==5.3.0
 
@@ -18,12 +18,12 @@ scipy==1.14.1
 
 # --- NLP / strategy translation / sentiment ---
 nltk==3.9.1
-google-genai==1.2.0     # Gemini API client — fallback distiller only, see CLAUDE.md
-praw==7.8.1             # Reddit API (official) for strategy_research scrapers
-feedparser==6.0.11      # blog RSS feeds
+google-genai==2.20.0    # Gemini API client — fallback distiller only, see CLAUDE.md
+praw==8.0.3             # Reddit API (official) for strategy_research scrapers
+feedparser==6.0.12      # blog RSS feeds
 
 # --- Retry/backoff for external API calls (Gemini free-tier quota handling) ---
-tenacity==9.0.0
+tenacity==9.1.4
 
 # --- Config / env / CLI ---
 python-dotenv==1.0.1
@@ -37,4 +37,4 @@ tzdata==2024.2
 
 # --- Testing ---
 pytest==8.3.3
-pytest-mock==3.14.0
+pytest-mock==3.15.1

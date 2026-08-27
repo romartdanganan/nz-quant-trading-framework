@@ -135,21 +135,47 @@ materially decay versus in-sample before a strategy is considered validated.
 
 ## Strategy lifecycle — bin the losers, keep the winners
 
-Every strategy discovered/translated/backtested must go through a pass/fail lifecycle, not
-just be generated and left lying around:
+**A backtest pass is necessary but never sufficient.** The user has been explicit about
+this: a strategy that looks amazing backtested can still fail live — via overfitting, a
+regime shift, or costs/slippage/latency the backtest didn't capture — and the whole point
+of this framework is for the user to actually be profitable, not to produce good-looking
+backtest reports. Every strategy must go through the full lifecycle below; no stage may be
+skipped or shortcut to get a strategy into live/paper trading faster.
 
-1. Translate (`strategy_research/`) → implement (`strategies/`) → backtest (`backtester/`)
-   → validate (`quant_engine/validation/`) against the thresholds above.
-2. **Strategies that fail validation are rejected, not fixed by relaxing thresholds or
-   retrying until something passes** — that's p-hacking / overfitting to the backtest.
-   Log the failed spec and its metrics (e.g. under `data/logs/` or a `strategy_registry`
-   — decide the concrete mechanism in Phase 4/6) and move on to the next candidate.
-3. Only strategies that clear validation get promoted into `strategies/` as real,
-   paper-trading-eligible implementations. Maintain a clear record of what was tried,
-   what passed, and what was rejected and why — don't silently discard the history, since
-   it prevents re-testing the same dead-end idea later.
-4. Re-validate periodically (walk-forward on new data) — a strategy that passed once is not
-   permanently trusted; performance decay should demote it back out of live paper trading.
+Registry status values (`strategy_research/registry.py`), in order:
+
+1. **`candidate`** — produced by the discovery pipeline (Phase 2), not yet backtested.
+2. **`validated`** — passed backtest + thresholds (`backtester/`, `quant_engine/validation/`,
+   Phase 4) net of NZ tax/FX. **Strategies that fail here are rejected outright** — never
+   fixed by relaxing thresholds or retrying until something passes; that's p-hacking. Log the
+   failed spec and its metrics and move on.
+3. **`incubating`** — a `validated` strategy is *not* promoted straight to real paper
+   trading. It first runs as a **forward test**: real-time paper-traded (or shadow-tracked)
+   execution on live/streaming data it has never seen, for a minimum incubation period,
+   before it is trusted with anything (including paper capital sizing decisions). This is
+   the guard against backtest-vs-live divergence. Minimum incubation criteria (tunable in
+   `config.yaml` under `incubation:`, defaults to be set in Phase 7/8 when the paper engine
+   exists): a minimum elapsed duration AND a minimum trade count (whichever is stricter),
+   plus a **live-vs-backtest divergence check** — incubation Sharpe/drawdown/profit factor
+   must not decay beyond a configured tolerance relative to the backtest numbers that got it
+   here. A strategy that decays during incubation is demoted straight to `rejected`, logged
+   with the divergence that killed it — this is a filter, not a warm-up formality.
+4. **`proven`** — cleared incubation. Only `proven` strategies are eligible to actually
+   receive the CLI's paper-trading capital allocation and dynamic risk sizing
+   (`risk_management/`). Re-validate `proven` strategies periodically against fresh
+   walk-forward data; decay demotes them back out (to `incubating` or `rejected` depending
+   on severity) rather than leaving a stale strategy trusted indefinitely.
+5. **`rejected`** — terminal for this candidate's current form. Keep the record (spec +
+   metrics + the reason/stage it failed at) rather than discarding it, so a dead-end idea
+   isn't silently re-tried later. A rejected strategy can still be revisited manually if the
+   user has a specific reason to (e.g. a parameter tweak), but the pipeline itself must not
+   auto-retry a rejected spec.
+6. **Live capital** is a separate, explicit decision gated by the Phase 9 live-readiness
+   review below — `proven` in paper trading is not itself authorization to go live.
+
+Maintain a clear, queryable record of every strategy's current stage and full history
+(`data/strategy_registry.json` — tracked in git, since it's project state, not a runtime
+cache) so nothing is silently generated and forgotten, and nothing skips a gate.
 
 ## Guardrails — do not repeat common AI-trader mistakes
 
@@ -171,6 +197,11 @@ hard constraint, not a suggestion:
   knowledge or recall), with walk-forward / out-of-sample splits, and must never let a
   strategy's rules or parameters be tuned using information from outside its training
   window. `quant_engine/validation/overfit_guard.py` is responsible for enforcing this.
+- **A great backtest does not mean a strategy is ready.** Backtested outperformance
+  regularly fails to survive contact with live markets — overfitting, regime change, and
+  execution realities (slippage, latency, partial fills) a backtest can't fully model. No
+  strategy skips the `incubating` forward-test stage in the Strategy Lifecycle above on its
+  way to real paper-trading capital, no matter how good its backtest numbers look.
 - **Don't rely on fragile, arbitrary web scraping for price/market data.** HTML layouts
   change, IPs get blocked, and scrapers silently break. Use standardized market-data APIs
   (`yfinance`, broker APIs, or similar) for all price/fundamentals data. Scraping
@@ -205,13 +236,13 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 ## Roadmap (implementation phases)
 
 1. **Scaffold** (done) — directory structure, configs, .gitignore, CLAUDE.md, GitHub repo.
-2. **Strategy Discovery Engine** — forum/blog/GitHub scrapers + NL-to-rules translator (`strategy_research/`).
+2. **Strategy Discovery Engine** (in progress) — automated scrape→extract→distill pipeline, schema-validated `StrategySpec`, and the `strategy_registry.json` (`status="candidate"`) (`strategy_research/`).
 3. **NZ Tax & FX Engine** — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
-4. **Backtesting & Validation Engine** — backtrader integration, metrics, overfit guard, and a strategy registry (tried/passed/rejected record — see Strategy Lifecycle above) (`backtester/`, `quant_engine/validation/`).
+4. **Backtesting & Validation Engine** — backtrader integration, metrics, overfit guard; promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`).
 5. **Screener & Sentiment Engine** — fundamental screener + news sentiment scoring (`quant_engine/screeners/`).
-6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only validated strategies get promoted here (`strategies/`).
-7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
-8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; run full paper-trading loop.
-9. **Live-readiness review** — re-validate thresholds, tax handling, and risk controls before any live capital is considered.
+6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only `validated` strategies get real implementations here (`strategies/`).
+7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic, and the **incubation forward-test engine** that runs `validated` strategies live-but-unfunded and promotes/demotes `incubating` → `proven`/`rejected` (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
+8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; only `proven` strategies get real paper-trading capital.
+9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.
 
 Confirm with the user before starting each new phase — build and commit one phase at a time.

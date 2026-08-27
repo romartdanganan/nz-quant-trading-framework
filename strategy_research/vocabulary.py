@@ -1,6 +1,82 @@
-"""Controlled vocabulary of known indicators (RSI, MACD, Bollinger Bands, ATR, VWAP,
-z-score/spread, breakout+volume) and strategy archetypes (mean_reversion, momentum,
-pairs_trading, breakout) that rule_extractor.py matches scraped text against.
-
-Phase 2 (Automated Strategy Discovery Pipeline). Not yet implemented.
+"""Controlled vocabulary of known indicators and strategy archetypes that
+rule_extractor.py matches scraped text against. Anything outside this vocabulary must fall
+through to the Gemini fallback (or be rejected) rather than guessed — see CLAUDE.md
+Guardrails on never letting extraction hallucinate trading logic.
 """
+from __future__ import annotations
+
+import re
+
+from strategy_research.strategy_spec import Archetype, Indicator
+
+ARCHETYPE_KEYWORDS: dict[Archetype, list[str]] = {
+    Archetype.MEAN_REVERSION: [
+        "mean reversion",
+        "reverts to the mean",
+        "bollinger band",
+        "oversold",
+        "overbought",
+        "z-score",
+    ],
+    Archetype.MOMENTUM: [
+        "momentum",
+        "trend following",
+        "moving average crossover",
+        "macd cross",
+    ],
+    Archetype.PAIRS_TRADING: [
+        "pairs trading",
+        "cointegration",
+        "spread trading",
+        "statistical arbitrage",
+    ],
+    Archetype.BREAKOUT: [
+        "breakout",
+        "range breakout",
+        "channel breakout",
+        "volume confirmation",
+        "new high",
+    ],
+}
+
+# Words mapped to the Operator values they represent (see strategy_spec.Operator).
+OPERATOR_WORDS: dict[str, str] = {
+    "below": "<",
+    "above": ">",
+    "<": "<",
+    ">": ">",
+    "<=": "<=",
+    ">=": ">=",
+    "crosses above": "crosses_above",
+    "crosses below": "crosses_below",
+}
+
+# Each pattern captures either (operator_word, numeric_value) for threshold-style
+# indicators, or (operator_word,) alone for crossover-style indicators (threshold is a
+# sentinel 0.0 in that case — see strategy_spec.CROSSOVER_OPERATORS).
+INDICATOR_PATTERNS: dict[Indicator, re.Pattern] = {
+    Indicator.RSI: re.compile(
+        r"\brsi\b(?:\s*\(\d+\))?\s*(?:is\s*)?(below|above|<=|>=|<|>)\s*(\d{1,3}(?:\.\d+)?)",
+        re.IGNORECASE,
+    ),
+    Indicator.ZSCORE: re.compile(
+        r"z[- ]?score\s*(?:is\s*)?(below|above|<=|>=|<|>)\s*(-?\d+(?:\.\d+)?)",
+        re.IGNORECASE,
+    ),
+    Indicator.ATR: re.compile(
+        r"\batr\b\s*(?:is\s*)?(below|above|<=|>=|<|>)\s*(\d+(?:\.\d+)?)",
+        re.IGNORECASE,
+    ),
+    Indicator.VOLUME: re.compile(
+        r"\bvolume\s*(?:is\s*)?(above|below|<=|>=|<|>)\s*(\d+(?:\.\d+)?)\s*x?\b",
+        re.IGNORECASE,
+    ),
+    Indicator.MACD: re.compile(
+        r"\bmacd\b\s*(crosses above|crosses below)",
+        re.IGNORECASE,
+    ),
+    Indicator.VWAP: re.compile(
+        r"\bvwap\b\s*(crosses above|crosses below)",
+        re.IGNORECASE,
+    ),
+}

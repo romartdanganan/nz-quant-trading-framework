@@ -20,7 +20,11 @@ MENU = """
 
 
 def search_online_strategies() -> None:
-    console.print("[yellow]Not yet implemented — runs strategy_research/pipeline.py end-to-end[/yellow]")
+    from strategy_research import pipeline
+
+    console.print("[cyan]Running strategy discovery pipeline (scrape -> extract -> distill)...[/cyan]")
+    summary = pipeline.run()
+    console.print(summary)
 
 
 def backtest_and_validate() -> None:
