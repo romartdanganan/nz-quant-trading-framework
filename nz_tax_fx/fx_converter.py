@@ -27,6 +27,7 @@ class FXConverter:
     def __init__(self, cache_path: Path | str = DEFAULT_CACHE_PATH):
         self.cache_path = Path(cache_path)
         self._cache: dict[str, float] = self._load_cache()
+        self._fetched_ranges: list[tuple[str, str]] = []  # in-memory only, this process
 
     def _load_cache(self) -> dict[str, float]:
         if not self.cache_path.exists():
@@ -63,3 +64,39 @@ class FXConverter:
 
     def convert_to_nzd(self, amount_usd: float, as_of: date | None = None) -> float:
         return amount_usd * self.get_rate(as_of)
+
+    def get_rate_series(self, start: date, end: date) -> dict[str, float]:
+        """Bulk-fetches USD/NZD rates for every FX trading day in [start, end] in a single
+        request (Frankfurter's range endpoint) — used to convert a whole equity curve to
+        NZD without one API call per day. Keys are ISO date strings; weekends/FX holidays
+        are simply absent (forex doesn't trade every calendar day) — callers should
+        forward-fill against their own index. Repeated calls with a range already covered
+        by a prior call in this process are served from memory.
+        """
+        start_str, end_str = start.isoformat(), end.isoformat()
+        already_covered = any(
+            cached_start <= start_str and end_str <= cached_end
+            for cached_start, cached_end in self._fetched_ranges
+        )
+
+        if not already_covered:
+            url = f"{FRANKFURTER_BASE_URL}/{start_str}..{end_str}"
+            try:
+                response = requests.get(url, params={"base": "USD", "symbols": "NZD"}, timeout=15)
+                response.raise_for_status()
+                rates = response.json()["rates"]
+            except (requests.RequestException, KeyError, ValueError, TypeError) as exc:
+                raise FXRateUnavailable(
+                    f"Could not fetch USD/NZD rate series for {start}..{end}: {exc}"
+                ) from exc
+
+            for date_str, rate_obj in rates.items():
+                self._cache[date_str] = float(rate_obj["NZD"])
+            self._fetched_ranges.append((start_str, end_str))
+            self._save_cache()
+
+        return {
+            date_str: rate
+            for date_str, rate in self._cache.items()
+            if date_str != "latest" and start_str <= date_str <= end_str
+        }

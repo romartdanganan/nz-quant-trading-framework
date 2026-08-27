@@ -12,6 +12,7 @@ since it's project state, not a runtime cache.
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 
 from strategy_research.strategy_spec import StrategySpec
@@ -19,6 +20,10 @@ from strategy_research.strategy_spec import StrategySpec
 DEFAULT_REGISTRY_PATH = Path("data/strategy_registry.json")
 
 STATUSES = ("candidate", "validated", "incubating", "proven", "rejected")
+
+
+class StrategyNotFound(KeyError):
+    pass
 
 
 class StrategyRegistry:
@@ -39,10 +44,30 @@ class StrategyRegistry:
 
     def add_candidate(self, spec: StrategySpec) -> dict:
         record = spec.to_dict()
+        record["id"] = uuid.uuid4().hex
         record["status"] = "candidate"
         record["metrics"] = None
         record["history"] = [{"status": "candidate", "reason": "discovered by pipeline"}]
         self._records.append(record)
+        return record
+
+    def get(self, record_id: str) -> dict:
+        for record in self._records:
+            if record.get("id") == record_id:
+                return record
+        raise StrategyNotFound(record_id)
+
+    def promote_to_validated(self, record_id: str, metrics: dict, reason: str) -> dict:
+        record = self.get(record_id)
+        record["status"] = "validated"
+        record["metrics"] = metrics
+        record["history"].append({"status": "validated", "reason": reason})
+        return record
+
+    def reject(self, record_id: str, reason: str) -> dict:
+        record = self.get(record_id)
+        record["status"] = "rejected"
+        record["history"].append({"status": "rejected", "reason": reason})
         return record
 
     def list(self, status: str | None = None) -> list[dict]:

@@ -1,4 +1,6 @@
-from strategy_research.registry import StrategyRegistry
+import pytest
+
+from strategy_research.registry import StrategyNotFound, StrategyRegistry
 from strategy_research.strategy_spec import Archetype, Condition, Indicator, Operator, StrategySpec
 
 
@@ -42,3 +44,32 @@ def test_list_filters_by_status(tmp_path):
 
     assert len(registry.list(status="candidate")) == 1
     assert len(registry.list(status="proven")) == 0
+
+
+def test_promote_to_validated_updates_status_metrics_and_history(tmp_path):
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    record = registry.add_candidate(make_spec())
+
+    registry.promote_to_validated(record["id"], {"sharpe_ratio": 2.0}, "passed all thresholds")
+
+    updated = registry.get(record["id"])
+    assert updated["status"] == "validated"
+    assert updated["metrics"] == {"sharpe_ratio": 2.0}
+    assert updated["history"][-1] == {"status": "validated", "reason": "passed all thresholds"}
+
+
+def test_reject_updates_status_and_appends_history(tmp_path):
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    record = registry.add_candidate(make_spec())
+
+    registry.reject(record["id"], "Sharpe too low")
+
+    updated = registry.get(record["id"])
+    assert updated["status"] == "rejected"
+    assert updated["history"][-1] == {"status": "rejected", "reason": "Sharpe too low"}
+
+
+def test_get_unknown_id_raises(tmp_path):
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    with pytest.raises(StrategyNotFound):
+        registry.get("does-not-exist")

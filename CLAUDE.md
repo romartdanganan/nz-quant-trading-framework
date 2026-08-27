@@ -30,10 +30,19 @@ strategy_research/            # Phase 2 — automated discovery pipeline (see be
   distiller/gemini_client.py  #   Gemini API fallback for low-confidence/bulk input only
   vocabulary.py                #   controlled indicator/strategy-archetype vocabulary
   pipeline.py                  #   orchestrates scrape->extract->distill->translate->registry
-quant_engine/         # Phase 4/5 — validation metrics, overfit guard, fundamental + sentiment screeners
+quant_engine/
+  validation/metrics.py      # Phase 4 — Sharpe/MaxDD/ProfitFactor from an equity curve + trades
+  validation/overfit_guard.py# Phase 4 — walk-forward in/out-of-sample Sharpe decay check
+  validation/validator.py    # Phase 4 — the single candidate->validated/rejected gate
+  validation/runner.py       # Phase 4 — drives validator.py over every registry "candidate"
+  screeners/                 # Phase 5 — fundamental + sentiment screeners
 nz_tax_fx/            # Phase 3 — FX conversion, FIF calculator (FDR/CV), tax reports
 strategies/           # Phase 6 — mean_reversion, momentum, pairs_trading, breakout
-backtester/           # Phase 4 — backtrader engine + historical data loader
+backtester/
+  data_loader.py       # Phase 4 — yfinance OHLCV, cached to data/historical/
+  signals.py           # Phase 4 — pure-pandas entry/exit boolean signals from a StrategySpec
+  engine.py            # Phase 4 — backtrader Cerebro execution simulation over those signals
+  nz_adjustments.py    # Phase 4 — bridges an equity curve through nz_tax_fx/ for net-of-cost metrics
 execution_ibkr/       # Phase 7 — ib_insync connector, US-market-hours → NZT scheduling
 execution_alpaca/     # Phase 7 — Alpaca connector
 risk_management/      # Phase 7 — ATR/Kelly position sizing, stop-loss/target logic
@@ -139,6 +148,16 @@ fees (`quant_engine/validation/`, thresholds in `config.yaml` under `validation_
 
 `overfit_guard.py` must also confirm out-of-sample / walk-forward performance doesn't
 materially decay versus in-sample before a strategy is considered validated.
+
+**Known Phase 4 backtest engine limitations** (honest, not silently papered over):
+- `backtester/signals.py` rejects `BOLLINGER_BANDS` conditions outright
+  (`UnsupportedIndicatorError`) rather than guessing which band edge a single threshold
+  means — a strategy using it is rejected at the backtest stage, not mis-evaluated.
+- No stop-loss or position sizing is modeled in the Phase 4 backtest (that's
+  `risk_management/`, Phase 7) — a full position is bought/sold on signal only. This means
+  `validated` status reflects the raw strategy edge, not the edge with real risk controls
+  active; `incubating` (which runs with real risk controls) is what actually proves the
+  combination is trustworthy — consistent with the Strategy Lifecycle below.
 
 ## Strategy lifecycle — bin the losers, keep the winners
 
@@ -279,9 +298,9 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 ## Roadmap (implementation phases)
 
 1. **Scaffold** (done) — directory structure, configs, .gitignore, CLAUDE.md, GitHub repo.
-2. **Strategy Discovery Engine** (in progress) — automated scrape→extract→distill pipeline, schema-validated `StrategySpec`, and the `strategy_registry.json` (`status="candidate"`) (`strategy_research/`).
-3. **NZ Tax & FX Engine** — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
-4. **Backtesting & Validation Engine** — backtrader integration, metrics, overfit guard; promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`).
+2. **Strategy Discovery Engine** (done) — automated scrape→extract→distill pipeline, schema-validated `StrategySpec`, and the `strategy_registry.json` (`status="candidate"`) (`strategy_research/`).
+3. **NZ Tax & FX Engine** (done) — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
+4. **Backtesting & Validation Engine** (done) — backtrader integration (via pure-pandas `signals.py` + `engine.py`), Sharpe/MaxDD/ProfitFactor metrics net of NZ tax/FX drag, walk-forward overfit guard; `runner.py` promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`). Known limitation: `BOLLINGER_BANDS` conditions and stop-loss/position-sizing are not yet modeled — see "Known Phase 4 backtest engine limitations" above.
 5. **Screener & Sentiment Engine** — fundamental screener + news sentiment scoring (`quant_engine/screeners/`).
 6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only `validated` strategies get real implementations here (`strategies/`).
 7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic, and the **incubation forward-test engine** that runs `validated` strategies live-but-unfunded and promotes/demotes `incubating` → `proven`/`rejected` (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).

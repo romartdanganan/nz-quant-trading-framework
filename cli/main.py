@@ -28,7 +28,11 @@ def search_online_strategies() -> None:
 
 
 def backtest_and_validate() -> None:
-    console.print("[yellow]Not yet implemented — see backtester/ and quant_engine/validation/[/yellow]")
+    from quant_engine.validation import runner
+
+    console.print("[cyan]Backtesting registry candidates (net of NZ tax + FX)...[/cyan]")
+    summary = runner.run_validation()
+    console.print(summary)
 
 
 def run_ai_screener() -> None:

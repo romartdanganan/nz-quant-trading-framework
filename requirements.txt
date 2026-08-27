@@ -3,16 +3,16 @@ ib_insync==0.9.86
 alpaca-py==0.33.1
 
 # --- Data & market data ---
-yfinance==0.2.54
+yfinance==1.7.0
 requests==2.34.2
 beautifulsoup4==4.12.3
 lxml==5.3.0
 
 # --- Quant / backtesting / TA ---
 backtrader==1.9.78.123
-pandas-ta==0.3.14b0
-pandas==2.2.3
-numpy==1.26.4
+pandas-ta==0.4.71b0     # 0.3.x is unavailable/broken on numpy>=2.0; this beta is verified working
+pandas==2.3.1
+numpy==2.3.1
 scikit-learn==1.5.2
 scipy==1.14.1
 
