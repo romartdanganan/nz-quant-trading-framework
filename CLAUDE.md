@@ -72,6 +72,8 @@ risk_management/
 cli/                  # Interactive terminal menu entrypoint (python -m cli.main)
 dashboard/generator.py # visual HTML status dashboard (registry pipeline breakdown, Sharpe
                         # comparison, equity curves) — local file, CLI option [6], see below
+scripts/run_incubation_cycle.py # non-interactive form of CLI option [4] — run by a real
+                        # Windows Scheduled Task daily, see "Execution & incubation engine"
 config/               # settings.py loads .env + config.yaml into one Settings object
 data/                 # historical/, cache/, logs/ — gitignored, never commit market data
 tests/
@@ -265,11 +267,20 @@ instead of being forced through the single-ticker path:
   trade on exit/stop/target. If `ALPACA_API_KEY` is configured it places a real paper
   bracket order; otherwise it runs in **shadow mode** (tracks the position and its P&L
   without calling any broker), so the whole pipeline is exercisable without live
-  credentials. **This is not a continuously-running process** — something has to invoke
-  `cli/main.py` option `[4]` on a recurring schedule (e.g. once daily after the US close)
-  for incubation to actually progress over its 60+ day window. A single Claude Code session
-  cannot itself run a multi-week background loop; this needs a real scheduler (cron /
-  Windows Task Scheduler / similar) once the user is ready to let it run unattended.
+  credentials. **This is not a continuously-running process** — something has to invoke it
+  on a recurring schedule for incubation to actually progress over its 60+ day window (a
+  single Claude Code session cannot itself run a multi-week background loop).
+- **Fixed**: `scripts/run_incubation_cycle.py` is the non-interactive entrypoint (the same
+  steps as `cli/main.py` option `[4]`, plus regenerating the dashboard afterward), and a
+  real Windows Scheduled Task (`NZQuantTrader-IncubationCycle`, daily at 11:00 local time,
+  `-StartWhenAvailable` so a missed run catches up on next login) invokes
+  `python -m scripts.run_incubation_cycle` from the repo root. Set up with the user's
+  explicit permission (persistent system config) and live-verified by manually triggering
+  it via `Start-ScheduledTask` and confirming the log/dashboard actually updated — not just
+  assumed to work. Logs to `data/logs/incubation_cycle.log` (gitignored). To
+  inspect/modify/remove: `Get-ScheduledTask -TaskName NZQuantTrader-IncubationCycle` /
+  `Unregister-ScheduledTask -TaskName NZQuantTrader-IncubationCycle` in PowerShell, or via
+  the Task Scheduler GUI (`taskschd.msc`).
 - `paper_trading_engine.py` trades each record's own `record["ticker"]` (set by `runner.py`
   during validation), fetching price data once per unique ticker needed per cycle, not once
   per record — no longer the single-shared-ticker limitation this section used to describe.
@@ -467,7 +478,7 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
 6. **Strategy Library** (done) — hand-designed classic reference strategies for all four archetypes: `classic_rsi_reversion`, `classic_macd_momentum`, `classic_channel_breakout` (added a proper `CHANNEL_HIGH`/`CHANNEL_LOW` indicator + per-condition `period` override to the schema for this), and pairs trading's own `PairsSpec`/cointegration/spread stack (`strategies/`, `backtester/pairs_engine.py`, `quant_engine/validation/pairs_validator.py` + `pairs_runner.py` — see "Pairs trading" above). `library.py` seeds all of them into the registry automatically.
 7. **Execution & Risk Engine** (done) — IBKR (`ib_insync`) and Alpaca (`alpaca-py`) bracket-order connectors (both refuse a naked order), NZT market-hours conversion, ATR/Kelly position sizing, stop/target + trailing-stop logic, and the hardcoded circuit breakers, all wired through `quant_engine/validation/incubation.py`'s forward-test decision logic and `execution_alpaca/paper_trading_engine.py`'s one-cycle-at-a-time paper execution loop (`execution_ibkr/`, `execution_alpaca/`, `risk_management/` — see "Execution & incubation engine" above for what's real vs. unverified-pending-credentials/TWS).
-8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle for both single-ticker and pairs-trading candidates already, each candidate validated/traded on its own best-fit ticker from `strategy_validation.universe` (the single-shared-ticker limitation is fixed); only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call option `[4]` repeatedly, and build real two-leg broker execution for pairs (currently shadow-only).
+8. **CLI wiring & end-to-end paper trading** (done) — option `[4]` runs one incubation cycle for both single-ticker and pairs-trading candidates, each validated/traded on its own best-fit ticker from `strategy_validation.universe`; `scripts/run_incubation_cycle.py` is the non-interactive form, run daily by a real Windows Scheduled Task (`NZQuantTrader-IncubationCycle`) — see "Execution & incubation engine" above. Only `proven` strategies should get real paper-trading capital. Remaining work: real two-leg broker execution for pairs (currently shadow-only).
 9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.
 
 Confirm with the user before starting each new phase — build and commit one phase at a time.
