@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import date
 from pathlib import Path
 from typing import Protocol
 
@@ -29,6 +30,12 @@ STATUSES = ("candidate", "validated", "incubating", "proven", "rejected")
 
 class StrategyNotFound(KeyError):
     pass
+
+
+class InvalidTransition(ValueError):
+    """Raised when a status transition is attempted from a record not in the required
+    starting status — e.g. starting incubation on something that was never "validated".
+    """
 
 
 class _SpecLike(Protocol):
@@ -77,6 +84,31 @@ class StrategyRegistry:
         record = self.get(record_id)
         record["status"] = "rejected"
         record["history"].append({"status": "rejected", "reason": reason})
+        return record
+
+    def start_incubation(self, record_id: str) -> dict:
+        """validated -> incubating: begins the forward-test (CLAUDE.md Strategy
+        Lifecycle). Captures the backtest metrics as baseline_metrics so
+        quant_engine/validation/incubation.py can measure live-vs-backtest decay.
+        """
+        record = self.get(record_id)
+        if record["status"] != "validated":
+            raise InvalidTransition(
+                f"cannot start incubation from status {record['status']!r} (must be 'validated')"
+            )
+        record["status"] = "incubating"
+        record["incubation_start_date"] = date.today().isoformat()
+        record["baseline_metrics"] = record["metrics"]
+        record["incubation_log"] = []
+        record["incubation_trades"] = []
+        record["history"].append({"status": "incubating", "reason": "forward-test started"})
+        return record
+
+    def promote_to_proven(self, record_id: str, metrics: dict, reason: str) -> dict:
+        record = self.get(record_id)
+        record["status"] = "proven"
+        record["metrics"] = metrics
+        record["history"].append({"status": "proven", "reason": reason})
         return record
 
     def list(self, status: str | None = None) -> list[dict]:

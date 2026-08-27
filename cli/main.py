@@ -15,7 +15,7 @@ MENU = """
   [1] Search Online Strategies
   [2] Backtest & Validate (with FIF Tax)
   [3] Run AI Screener
-  [4] Launch IBKR Paper Trading Engine
+  [4] Run Incubation Cycle (paper trading forward-test)
   [0] Exit
 """
 
@@ -70,7 +70,22 @@ def run_ai_screener() -> None:
 
 
 def launch_paper_trading() -> None:
-    console.print("[yellow]Not yet implemented — see execution_ibkr/ and execution_alpaca/[/yellow]")
+    from execution_alpaca.paper_trading_engine import run_incubation_cycle
+    from quant_engine.validation.incubation import process_incubating_strategies, start_incubation_for_validated
+
+    console.print("[cyan]Promoting any newly-validated strategies into incubation...[/cyan]")
+    console.print(start_incubation_for_validated())
+
+    console.print("[cyan]Running one incubation polling cycle (paper, not live)...[/cyan]")
+    console.print(run_incubation_cycle())
+
+    console.print("[cyan]Evaluating incubation progress (promote/reject)...[/cyan]")
+    console.print(process_incubating_strategies())
+
+    console.print(
+        "[yellow]Note: incubation needs this option run on a recurring schedule (e.g. daily) "
+        "to actually progress over its full window — see CLAUDE.md.[/yellow]"
+    )
 
 
 ACTIONS = {

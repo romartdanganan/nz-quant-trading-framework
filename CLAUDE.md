@@ -37,6 +37,7 @@ quant_engine/
   validation/runner.py       # Phase 4 — drives validator.py over every "single"-kind registry candidate
   validation/pairs_validator.py # Phase 6 — cointegration gate + thresholds for pairs candidates
   validation/pairs_runner.py    # Phase 6 — drives pairs_validator.py over every "pairs"-kind candidate
+  validation/incubation.py      # Phase 7 — forward-test decision logic: validated->incubating->proven/rejected
   screeners/fundamental_screener.py # Phase 5 — deterministic P/E, PEG, D/E, revenue growth, earnings surprise scoring
   screeners/sentiment_scorer.py     # Phase 5 — NLTK VADER headline sentiment (local, no LLM call)
   screeners/watchlist.py            # Phase 5 — combines both + ATR stop/target into the CLI's advisory-only watchlist
@@ -54,9 +55,16 @@ backtester/
   engine.py            # Phase 4 — backtrader Cerebro execution simulation over those signals
   nz_adjustments.py    # Phase 4 — bridges an equity curve through nz_tax_fx/ for net-of-cost metrics
   pairs_engine.py       # Phase 6 — direct spread P&L simulation for PairsSpec (not backtrader — see below)
-execution_ibkr/       # Phase 7 — ib_insync connector, US-market-hours → NZT scheduling
-execution_alpaca/     # Phase 7 — Alpaca connector
-risk_management/      # Phase 7 — ATR/Kelly position sizing, stop-loss/target logic
+execution_ibkr/
+  ibkr_connector.py    # Phase 7 — ib_insync bracket orders; needs TWS/Gateway, unverified beyond mocks
+  market_hours.py      # Phase 7 — US session (America/New_York) <-> NZT, DST-aware, fully real/tested
+execution_alpaca/
+  alpaca_connector.py       # Phase 7 — alpaca-py bracket orders (paper); no live credentials configured yet
+  paper_trading_engine.py   # Phase 7 — one incubation polling cycle: signal -> size -> circuit breakers -> order/shadow
+risk_management/
+  position_sizing.py   # Phase 7 — ATR/Kelly sizing, hard-capped by max_position_size_pct
+  stop_target.py        # Phase 7 — stop-loss/target-profit + trailing-stop ratchet
+  circuit_breakers.py   # Phase 7 — hardcoded, non-negotiable: stop-loss required, position cap, daily-loss halt
 cli/                  # Interactive dashboard entrypoint (python -m cli.main)
 config/               # settings.py loads .env + config.yaml into one Settings object
 data/                 # historical/, cache/, logs/ — gitignored, never commit market data
@@ -206,6 +214,51 @@ instead of being forced through the single-ticker path:
   the discovery pipeline runs (`cli/main.py` option `[1]`), so a fresh registry always has
   something real to backtest even before any online discovery happens.
 
+## Execution & incubation engine (Phase 7)
+
+- `execution_ibkr/market_hours.py` and `risk_management/{position_sizing,stop_target,
+  circuit_breakers}.py` are fully real and fully tested — no external dependency, no
+  credentials needed. `circuit_breakers.py` is the one place `execution_ibkr/` and
+  `execution_alpaca/` must call through before placing any order (`check_order()`): it
+  enforces the hardcoded position-size ceiling, the mandatory stop-loss, and (via a
+  supplied `DailyLossTracker`) the daily-loss halt — see "Hardcoded risk circuit breakers"
+  above. Neither connector will construct or send a naked order; `stop_loss`/`take_profit`
+  are required arguments on both `submit_bracket_order()` functions, not optional ones.
+- `execution_alpaca/alpaca_connector.py` (alpaca-py) is real, working code, unit-tested
+  against a mocked `TradingClient` — but **this repo has no `ALPACA_API_KEY` configured**,
+  so it has never been exercised against Alpaca's actual paper endpoint. Whoever adds real
+  credentials should treat the first live run as the actual verification, not this code
+  review.
+- `execution_ibkr/ibkr_connector.py` (ib_insync) needs TWS or IB Gateway **running locally**
+  with API access enabled — this cannot be exercised in a sandboxed environment or CI
+  runner at all, credentials or not. `build_bracket_order()` (pure order construction) is
+  unit-tested with no connection; `submit_bracket_order()` is unit-tested only against a
+  mocked `ib` object. Real verification requires a human running TWS/Gateway locally.
+- `quant_engine/validation/incubation.py` is the forward-test **decision logic**:
+  `evaluate_incubation()` checks for Sharpe/MaxDD decay on every call (a strategy blowing
+  through its tolerance is rejected immediately, not after waiting out the full window),
+  and only recommends promotion once both `incubation.min_days` and `incubation.min_trades`
+  are satisfied with no decay. `strategy_research/registry.py` owns the actual
+  `validated -> incubating -> proven/rejected` transitions (`start_incubation()`,
+  `promote_to_proven()`).
+- `execution_alpaca/paper_trading_engine.py`'s `run_incubation_cycle()` is **one polling
+  cycle**: for each `incubating` single-ticker strategy, it generates today's signal with
+  the same `backtester/signals.py` logic used in backtesting, and opens/holds/closes a
+  position with real stateful tracking persisted directly on the registry record
+  (`incubation_position`, `incubation_realized_pnl`) — mark-to-market each cycle, booking a
+  trade on exit/stop/target. If `ALPACA_API_KEY` is configured it places a real paper
+  bracket order; otherwise it runs in **shadow mode** (tracks the position and its P&L
+  without calling any broker), so the whole pipeline is exercisable without live
+  credentials. **This is not a continuously-running process** — something has to invoke
+  `cli/main.py` option `[4]` on a recurring schedule (e.g. once daily after the US close)
+  for incubation to actually progress over its 60+ day window. A single Claude Code session
+  cannot itself run a multi-week background loop; this needs a real scheduler (cron /
+  Windows Task Scheduler / similar) once the user is ready to let it run unattended.
+- Known limitations, carried forward honestly rather than hidden: long-only (`StrategySpec`
+  doesn't model a short side yet); pairs-trading incubation isn't wired into
+  `paper_trading_engine.py`; every incubating strategy is still checked against one shared
+  `ticker` (same limitation as `runner.py`, above).
+
 ## Strategy lifecycle — bin the losers, keep the winners
 
 **A backtest pass is necessary but never sufficient.** The user has been explicit about
@@ -350,8 +403,8 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 4. **Backtesting & Validation Engine** (done) — backtrader integration (via pure-pandas `signals.py` + `engine.py`), Sharpe/MaxDD/ProfitFactor metrics net of NZ tax/FX drag, walk-forward overfit guard; `runner.py` promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`). Known limitation: `BOLLINGER_BANDS` conditions and stop-loss/position-sizing are not yet modeled — see "Known Phase 4 backtest engine limitations" above.
 5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
 6. **Strategy Library** (done) — hand-designed classic reference strategies for all four archetypes: `classic_rsi_reversion`, `classic_macd_momentum`, `classic_channel_breakout` (added a proper `CHANNEL_HIGH`/`CHANNEL_LOW` indicator + per-condition `period` override to the schema for this), and pairs trading's own `PairsSpec`/cointegration/spread stack (`strategies/`, `backtester/pairs_engine.py`, `quant_engine/validation/pairs_validator.py` + `pairs_runner.py` — see "Pairs trading" above). `library.py` seeds all of them into the registry automatically.
-7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic, and the **incubation forward-test engine** that runs `validated` strategies live-but-unfunded and promotes/demotes `incubating` → `proven`/`rejected` (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
-8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; only `proven` strategies get real paper-trading capital.
+7. **Execution & Risk Engine** (done) — IBKR (`ib_insync`) and Alpaca (`alpaca-py`) bracket-order connectors (both refuse a naked order), NZT market-hours conversion, ATR/Kelly position sizing, stop/target + trailing-stop logic, and the hardcoded circuit breakers, all wired through `quant_engine/validation/incubation.py`'s forward-test decision logic and `execution_alpaca/paper_trading_engine.py`'s one-cycle-at-a-time paper execution loop (`execution_ibkr/`, `execution_alpaca/`, `risk_management/` — see "Execution & incubation engine" above for what's real vs. unverified-pending-credentials/TWS).
+8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle already; only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call it repeatedly, extend incubation to pairs-trading candidates, and resolve the single-shared-ticker limitation before this matters for real capital allocation.
 9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.
 
 Confirm with the user before starting each new phase — build and commit one phase at a time.

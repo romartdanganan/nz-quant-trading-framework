@@ -1,6 +1,6 @@
 # --- Broker / execution APIs ---
-ib_insync==0.9.86
-alpaca-py==0.33.1
+ib_insync==0.9.86       # requires TWS/IB Gateway running locally — cannot be exercised in CI/sandbox
+alpaca-py==0.44.0       # 0.33.1 pin was a guess; verified working version for Python 3.13
 
 # --- Data & market data ---
 yfinance==1.7.0
