@@ -26,6 +26,8 @@ class Indicator(str, Enum):
     SMA = "SMA"
     EMA = "EMA"
     VOLUME = "VOLUME"
+    CHANNEL_HIGH = "CHANNEL_HIGH"  # rolling N-day high — the classic breakout signal
+    CHANNEL_LOW = "CHANNEL_LOW"    # rolling N-day low — breakdown / trailing exit
 
 
 class Operator(str, Enum):
@@ -59,6 +61,10 @@ class Condition:
     indicator: Indicator
     operator: Operator
     threshold: float
+    # Lookback period override for indicators that use one (RSI/ATR/SMA/EMA/ZSCORE/VOLUME
+    # averaging period, or the N in CHANNEL_HIGH/CHANNEL_LOW's rolling N-day extreme).
+    # None means "use backtester/signals.py's module default for that indicator."
+    period: int | None = None
 
 
 def condition_to_dict(condition: Condition) -> dict:
@@ -66,6 +72,7 @@ def condition_to_dict(condition: Condition) -> dict:
         "indicator": condition.indicator.value,
         "operator": condition.operator.value,
         "threshold": condition.threshold,
+        "period": condition.period,
     }
 
 
@@ -74,6 +81,7 @@ def condition_from_dict(data: dict) -> Condition:
         indicator=Indicator(data["indicator"]),
         operator=Operator(data["operator"]),
         threshold=float(data.get("threshold", 0.0)),
+        period=data.get("period"),
     )
 
 
@@ -117,6 +125,7 @@ class StrategySpec:
 
     def to_dict(self) -> dict:
         return {
+            "kind": "single",  # distinguishes from PairsSpec records in the shared registry
             "name": self.name,
             "archetype": self.archetype.value,
             "entry_conditions": [condition_to_dict(c) for c in self.entry_conditions],

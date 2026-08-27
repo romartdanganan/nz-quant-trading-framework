@@ -1,7 +1,7 @@
 """Computes entry/exit boolean signal series from a StrategySpec against OHLCV price
-data, using pandas-ta for standard indicators and hand-rolled pandas for VWAP/z-score
-(pandas-ta doesn't provide these in the form our vocabulary needs). Pure pandas, no
-backtrader dependency — independently testable from the execution simulation in engine.py.
+data, using pandas-ta for standard indicators and hand-rolled pandas for VWAP/z-score/
+channel-high-low (pandas-ta doesn't provide these in the form our vocabulary needs). Pure
+pandas, no backtrader dependency — independently testable from engine.py.
 
 BOLLINGER_BANDS conditions are rejected rather than guessed at: the schema only carries a
 single threshold, which doesn't disambiguate "distance from upper band" vs "from lower
@@ -20,6 +20,7 @@ ATR_PERIOD = 14
 VOLUME_AVG_PERIOD = 20
 ZSCORE_PERIOD = 20
 MA_PERIOD = 20
+CHANNEL_PERIOD = 20
 
 CROSSOVER_OPERATORS = (Operator.CROSSES_ABOVE, Operator.CROSSES_BELOW)
 
@@ -51,35 +52,54 @@ def _evaluate_condition(condition: Condition, df: pd.DataFrame) -> pd.Series:
         return _evaluate_macd(condition, df)
     if condition.indicator == Indicator.VWAP:
         return _evaluate_vwap(condition, df)
+    if condition.indicator in (Indicator.CHANNEL_HIGH, Indicator.CHANNEL_LOW):
+        return _evaluate_channel(condition, df)
     if condition.indicator == Indicator.BOLLINGER_BANDS:
         raise UnsupportedIndicatorError(
             "BOLLINGER_BANDS conditions are not supported by the backtest engine "
             "(ambiguous band edge — see module docstring)"
         )
 
-    value_line = _get_value_line(condition.indicator, df)
+    value_line = _get_value_line(condition.indicator, df, condition.period)
     if condition.operator in CROSSOVER_OPERATORS:
         return _crosses_threshold(value_line, condition.threshold, condition.operator)
     return _compare(value_line, condition.operator, condition.threshold)
 
 
-def _get_value_line(indicator: Indicator, df: pd.DataFrame) -> pd.Series:
+def _get_value_line(indicator: Indicator, df: pd.DataFrame, period: int | None) -> pd.Series:
     if indicator == Indicator.RSI:
-        return ta.rsi(df["close"], length=RSI_PERIOD)
+        return ta.rsi(df["close"], length=period or RSI_PERIOD)
     if indicator == Indicator.ATR:
-        return ta.atr(df["high"], df["low"], df["close"], length=ATR_PERIOD)
+        return ta.atr(df["high"], df["low"], df["close"], length=period or ATR_PERIOD)
     if indicator == Indicator.SMA:
-        return ta.sma(df["close"], length=MA_PERIOD)
+        return ta.sma(df["close"], length=period or MA_PERIOD)
     if indicator == Indicator.EMA:
-        return ta.ema(df["close"], length=MA_PERIOD)
+        return ta.ema(df["close"], length=period or MA_PERIOD)
     if indicator == Indicator.ZSCORE:
-        rolling_mean = df["close"].rolling(ZSCORE_PERIOD).mean()
-        rolling_std = df["close"].rolling(ZSCORE_PERIOD).std()
+        window = period or ZSCORE_PERIOD
+        rolling_mean = df["close"].rolling(window).mean()
+        rolling_std = df["close"].rolling(window).std()
         return (df["close"] - rolling_mean) / rolling_std
     if indicator == Indicator.VOLUME:
-        avg_volume = df["volume"].rolling(VOLUME_AVG_PERIOD).mean()
+        avg_volume = df["volume"].rolling(period or VOLUME_AVG_PERIOD).mean()
         return df["volume"] / avg_volume
     raise UnsupportedIndicatorError(f"No value line defined for {indicator}")
+
+
+def _evaluate_channel(condition: Condition, df: pd.DataFrame) -> pd.Series:
+    """CHANNEL_HIGH/CHANNEL_LOW: the classic breakout signal — close crossing the rolling
+    N-day high/low. Shifted by 1 bar so "today's high" never counts toward "today's
+    breakout level" (that would be lookahead: the high isn't known until the bar closes).
+    """
+    period = condition.period or CHANNEL_PERIOD
+    if condition.indicator == Indicator.CHANNEL_HIGH:
+        channel_line = df["high"].rolling(period).max().shift(1)
+    else:
+        channel_line = df["low"].rolling(period).min().shift(1)
+
+    if condition.operator in CROSSOVER_OPERATORS:
+        return _crosses_lines(df["close"], channel_line, condition.operator)
+    return _compare(channel_line, condition.operator, condition.threshold)
 
 
 def _evaluate_macd(condition: Condition, df: pd.DataFrame) -> pd.Series:

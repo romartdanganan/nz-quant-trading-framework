@@ -78,6 +78,13 @@ screener:
   reward_risk_ratio: 2.0                # target distance = stop distance * this ratio
   sentiment_headline_limit: 10
 
+# Pairs trading (Phase 6). Candidate pairs are seeded from watchlists.pairs_trading below.
+pairs_trading:
+  cointegration_significance: 0.05      # Engle-Granger p-value must be below this to trade the pair
+  lookback_period: 30                   # rolling window for the spread z-score
+  entry_zscore: 2.0
+  exit_zscore: 0.5
+
 watchlists:
   day_trading:
     - AAPL

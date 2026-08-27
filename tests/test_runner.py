@@ -48,6 +48,17 @@ def test_run_validation_with_no_candidates_is_a_noop(tmp_path):
     assert summary == {"candidates": 0, "validated": 0, "rejected": 0, "errored": 0}
 
 
+def test_run_validation_ignores_pairs_candidates(tmp_path):
+    from strategies.pairs_trading.strategy import build_pairs_spec
+
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    registry.add_candidate(build_pairs_spec("KO", "PEP"))  # kind="pairs" — must be skipped here
+
+    summary = runner.run_validation(registry=registry)
+
+    assert summary == {"candidates": 0, "validated": 0, "rejected": 0, "errored": 0}
+
+
 def test_run_validation_handles_missing_price_data(tmp_path, monkeypatch):
     registry = StrategyRegistry(tmp_path / "registry.json")
     registry.add_candidate(make_spec("https://example.com/a"))

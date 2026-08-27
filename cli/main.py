@@ -22,6 +22,10 @@ MENU = """
 
 def search_online_strategies() -> None:
     from strategy_research import pipeline
+    from strategies.library import seed_classic_strategies
+
+    console.print("[cyan]Seeding classic reference strategies (mean reversion, momentum, breakout, pairs)...[/cyan]")
+    console.print(seed_classic_strategies())
 
     console.print("[cyan]Running strategy discovery pipeline (scrape -> extract -> distill)...[/cyan]")
     summary = pipeline.run()
@@ -29,11 +33,13 @@ def search_online_strategies() -> None:
 
 
 def backtest_and_validate() -> None:
-    from quant_engine.validation import runner
+    from quant_engine.validation import pairs_runner, runner
 
-    console.print("[cyan]Backtesting registry candidates (net of NZ tax + FX)...[/cyan]")
-    summary = runner.run_validation()
-    console.print(summary)
+    console.print("[cyan]Backtesting single-ticker candidates (net of NZ tax + FX)...[/cyan]")
+    console.print(runner.run_validation())
+
+    console.print("[cyan]Backtesting pairs-trading candidates (cointegration + NZ tax/FX)...[/cyan]")
+    console.print(pairs_runner.run_pairs_validation())
 
 
 def run_ai_screener() -> None:

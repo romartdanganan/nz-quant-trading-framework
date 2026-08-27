@@ -8,14 +8,19 @@ This module owns storage and the `candidate` stage only (Phase 2). Backtesting (
 promotes candidate->validated/rejected; the incubation forward-test engine (Phase 7/8)
 promotes validated->incubating->proven/rejected. Tracked in git (data/strategy_registry.json)
 since it's project state, not a runtime cache.
+
+Stores two shapes of record, disambiguated by a "kind" field each spec's own to_dict()
+sets: "single" (strategy_research.strategy_spec.StrategySpec — one ticker, indicator
+conditions) and "pairs" (strategies.pairs_trading.strategy.PairsSpec — two tickers, a
+spread relationship). This module stays decoupled from both concrete types — it only
+requires whatever is passed to add_candidate() to expose .to_dict().
 """
 from __future__ import annotations
 
 import json
 import uuid
 from pathlib import Path
-
-from strategy_research.strategy_spec import StrategySpec
+from typing import Protocol
 
 DEFAULT_REGISTRY_PATH = Path("data/strategy_registry.json")
 
@@ -24,6 +29,10 @@ STATUSES = ("candidate", "validated", "incubating", "proven", "rejected")
 
 class StrategyNotFound(KeyError):
     pass
+
+
+class _SpecLike(Protocol):
+    def to_dict(self) -> dict: ...
 
 
 class StrategyRegistry:
@@ -42,7 +51,7 @@ class StrategyRegistry:
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(self._records, f, indent=2)
 
-    def add_candidate(self, spec: StrategySpec) -> dict:
+    def add_candidate(self, spec: _SpecLike) -> dict:
         record = spec.to_dict()
         record["id"] = uuid.uuid4().hex
         record["status"] = "candidate"

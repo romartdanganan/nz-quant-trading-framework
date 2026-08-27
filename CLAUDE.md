@@ -34,17 +34,26 @@ quant_engine/
   validation/metrics.py      # Phase 4 — Sharpe/MaxDD/ProfitFactor from an equity curve + trades
   validation/overfit_guard.py# Phase 4 — walk-forward in/out-of-sample Sharpe decay check
   validation/validator.py    # Phase 4 — the single candidate->validated/rejected gate
-  validation/runner.py       # Phase 4 — drives validator.py over every registry "candidate"
+  validation/runner.py       # Phase 4 — drives validator.py over every "single"-kind registry candidate
+  validation/pairs_validator.py # Phase 6 — cointegration gate + thresholds for pairs candidates
+  validation/pairs_runner.py    # Phase 6 — drives pairs_validator.py over every "pairs"-kind candidate
   screeners/fundamental_screener.py # Phase 5 — deterministic P/E, PEG, D/E, revenue growth, earnings surprise scoring
   screeners/sentiment_scorer.py     # Phase 5 — NLTK VADER headline sentiment (local, no LLM call)
   screeners/watchlist.py            # Phase 5 — combines both + ATR stop/target into the CLI's advisory-only watchlist
 nz_tax_fx/            # Phase 3 — FX conversion, FIF calculator (FDR/CV), tax reports
-strategies/           # Phase 6 — mean_reversion, momentum, pairs_trading, breakout
+strategies/                   # Phase 6 — hand-designed classic reference strategies
+  mean_reversion/strategy.py  #   classic_rsi_reversion() -> StrategySpec
+  momentum/strategy.py        #   classic_macd_momentum() -> StrategySpec
+  breakout/strategy.py        #   classic_channel_breakout() -> StrategySpec (channel-high + volume)
+  pairs_trading/strategy.py   #   PairsSpec + hedge ratio/spread/z-score/cointegration math (two tickers — a
+                               #   different shape from StrategySpec; see "Pairs trading" section below)
+  library.py                  #   seed_classic_strategies() registers all of the above as registry candidates
 backtester/
   data_loader.py       # Phase 4 — yfinance OHLCV, cached to data/historical/
-  signals.py           # Phase 4 — pure-pandas entry/exit boolean signals from a StrategySpec
+  signals.py           # Phase 4/6 — pure-pandas entry/exit boolean signals from a StrategySpec
   engine.py            # Phase 4 — backtrader Cerebro execution simulation over those signals
   nz_adjustments.py    # Phase 4 — bridges an equity curve through nz_tax_fx/ for net-of-cost metrics
+  pairs_engine.py       # Phase 6 — direct spread P&L simulation for PairsSpec (not backtrader — see below)
 execution_ibkr/       # Phase 7 — ib_insync connector, US-market-hours → NZT scheduling
 execution_alpaca/     # Phase 7 — Alpaca connector
 risk_management/      # Phase 7 — ATR/Kelly position sizing, stop-loss/target logic
@@ -160,6 +169,42 @@ materially decay versus in-sample before a strategy is considered validated.
   `validated` status reflects the raw strategy edge, not the edge with real risk controls
   active; `incubating` (which runs with real risk controls) is what actually proves the
   combination is trustworthy — consistent with the Strategy Lifecycle below.
+- `runner.py` currently backtests every single-ticker candidate against one shared ticker
+  (default SPY) — `StrategySpec` has no ticker field of its own, so nothing yet tracks
+  which ticker a discovered rule should actually run against. Fine while there's no
+  watchlist-to-strategy mapping; revisit before this matters for real capital allocation.
+
+## Pairs trading (a genuinely different shape)
+
+Pairs trading cannot be expressed as a `StrategySpec` — it needs two tickers and a spread
+relationship, not indicator conditions on one price series. It gets its own parallel stack
+instead of being forced through the single-ticker path:
+
+- `strategies/pairs_trading/strategy.py` — `PairsSpec` (ticker_a, ticker_b, lookback
+  period, entry/exit z-score) plus the math: OLS hedge ratio, spread, rolling z-score, and
+  an Engle-Granger cointegration test (`statsmodels`).
+- **Cointegration is the pairs-trading equivalent of `overfit_guard.py`.** Two tickers that
+  merely moved together during a backtest window, without a real statistical relationship,
+  is curve-fitting wearing a disguise — exactly the overfitting failure mode the Guardrails
+  warn about. `quant_engine/validation/pairs_validator.py` rejects a pair outright
+  (`config.yaml` `pairs_trading.cointegration_significance`) before it ever reaches the
+  Sharpe/MaxDD/ProfitFactor thresholds. Known limitation: there's no walk-forward check for
+  pairs yet beyond the cointegration test itself.
+- `backtester/pairs_engine.py` simulates spread P&L directly (long/short the spread as the
+  z-score crosses entry/exit thresholds) rather than reusing `engine.py`'s backtrader
+  Cerebro model, which is built around one instrument. This is a documented simplification:
+  Phase 7's execution engine will place the two real broker legs; this backtest only needs
+  to prove the spread relationship is tradeable.
+- Registry records carry a `"kind"` field ("single" vs "pairs") set by each spec's own
+  `to_dict()` so `runner.py`/`pairs_runner.py` each only pick up their own shape — a pairs
+  record has no `entry_conditions`/`archetype` to reconstruct a `StrategySpec` from, and
+  vice versa.
+- `strategies/library.py` seeds the classic reference strategies (one hand-designed
+  implementation per archetype, including pairs pulled from `config.yaml`
+  `watchlists.pairs_trading`) into the registry as `candidate`s — idempotent via each
+  spec's internal `source_url` acting as its dedup key. This runs automatically whenever
+  the discovery pipeline runs (`cli/main.py` option `[1]`), so a fresh registry always has
+  something real to backtest even before any online discovery happens.
 
 ## Strategy lifecycle — bin the losers, keep the winners
 
@@ -304,7 +349,7 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 3. **NZ Tax & FX Engine** (done) — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
 4. **Backtesting & Validation Engine** (done) — backtrader integration (via pure-pandas `signals.py` + `engine.py`), Sharpe/MaxDD/ProfitFactor metrics net of NZ tax/FX drag, walk-forward overfit guard; `runner.py` promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`). Known limitation: `BOLLINGER_BANDS` conditions and stop-loss/position-sizing are not yet modeled — see "Known Phase 4 backtest engine limitations" above.
 5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
-6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only `validated` strategies get real implementations here (`strategies/`).
+6. **Strategy Library** (done) — hand-designed classic reference strategies for all four archetypes: `classic_rsi_reversion`, `classic_macd_momentum`, `classic_channel_breakout` (added a proper `CHANNEL_HIGH`/`CHANNEL_LOW` indicator + per-condition `period` override to the schema for this), and pairs trading's own `PairsSpec`/cointegration/spread stack (`strategies/`, `backtester/pairs_engine.py`, `quant_engine/validation/pairs_validator.py` + `pairs_runner.py` — see "Pairs trading" above). `library.py` seeds all of them into the registry automatically.
 7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic, and the **incubation forward-test engine** that runs `validated` strategies live-but-unfunded and promotes/demotes `incubating` → `proven`/`rejected` (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
 8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; only `proven` strategies get real paper-trading capital.
 9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.

@@ -73,3 +73,24 @@ def test_round_trip_dict():
     assert restored.entry_conditions == spec.entry_conditions
     assert restored.exit_conditions == spec.exit_conditions
     assert restored.source_url == spec.source_url
+
+
+def test_to_dict_tags_kind_single():
+    assert make_spec().to_dict()["kind"] == "single"
+
+
+def test_condition_period_round_trips():
+    spec = make_spec(entry_conditions=[Condition(Indicator.RSI, Operator.LT, 30, period=21)])
+    restored = StrategySpec.from_dict(spec.to_dict())
+    assert restored.entry_conditions[0].period == 21
+
+
+def test_condition_period_defaults_to_none():
+    assert Condition(Indicator.RSI, Operator.LT, 30).period is None
+
+
+def test_channel_high_condition_not_range_checked():
+    make_spec(
+        entry_conditions=[Condition(Indicator.CHANNEL_HIGH, Operator.CROSSES_ABOVE, 0.0, period=20)],
+        exit_conditions=[Condition(Indicator.CHANNEL_LOW, Operator.CROSSES_BELOW, 0.0, period=10)],
+    ).validate()

@@ -80,3 +80,9 @@ INDICATOR_PATTERNS: dict[Indicator, re.Pattern] = {
         re.IGNORECASE,
     ),
 }
+
+# Channel breakout patterns capture a lookback period (an integer), not an operator+value
+# pair — e.g. "20-day high", "breaks above the 55-day high". Handled separately in
+# rule_extractor.py since the capture shape differs from INDICATOR_PATTERNS above.
+CHANNEL_HIGH_PATTERN = re.compile(r"(\d+)[- ]day high", re.IGNORECASE)
+CHANNEL_LOW_PATTERN = re.compile(r"(\d+)[- ]day low", re.IGNORECASE)

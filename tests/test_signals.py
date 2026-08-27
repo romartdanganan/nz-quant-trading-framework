@@ -122,3 +122,64 @@ def test_bollinger_bands_condition_raises_unsupported():
     )
     with pytest.raises(UnsupportedIndicatorError):
         generate_signals(spec, df)
+
+
+def test_channel_high_breakout_detects_close_crossing_rolling_high():
+    dates = pd.date_range("2023-01-01", periods=10, freq="D")
+    close = pd.Series([100, 100, 100, 100, 100, 100, 100, 100, 150, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.CHANNEL_HIGH, Operator.CROSSES_ABOVE, 0.0, period=5)],
+        exit_=[Condition(Indicator.CHANNEL_LOW, Operator.CROSSES_BELOW, 0.0, period=5)],
+        archetype=Archetype.BREAKOUT,
+    )
+
+    signals = generate_signals(spec, df)
+
+    assert signals["entry_signal"].iloc[8] == True  # noqa: E712 — the 150 spike bar
+    assert signals["entry_signal"].sum() == 1
+
+
+def test_channel_high_never_leaks_todays_own_high():
+    # a single huge spike bar must never trigger its own breakout: the rolling max used
+    # for comparison is shifted by 1, so a spike can only be "broken out of" on a later bar.
+    dates = pd.date_range("2023-01-01", periods=6, freq="D")
+    close = pd.Series([100, 100, 500, 100, 100, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.CHANNEL_HIGH, Operator.CROSSES_ABOVE, 0.0, period=2)],
+        exit_=[Condition(Indicator.CHANNEL_LOW, Operator.CROSSES_BELOW, 0.0, period=2)],
+        archetype=Archetype.BREAKOUT,
+    )
+
+    signals = generate_signals(spec, df)
+
+    assert signals["entry_signal"].iloc[2] == False  # noqa: E712 — the spike bar itself
+
+
+def test_condition_period_override_changes_rsi_window(monkeypatch):
+    df = make_ohlcv()
+    captured_lengths = []
+
+    import backtester.signals as signals_module
+
+    original_rsi = signals_module.ta.rsi
+
+    def spy_rsi(close, length):
+        captured_lengths.append(length)
+        return original_rsi(close, length=length)
+
+    monkeypatch.setattr(signals_module.ta, "rsi", spy_rsi)
+
+    spec = make_spec(
+        entry=[Condition(Indicator.RSI, Operator.LT, 30, period=21)],
+        exit_=[Condition(Indicator.RSI, Operator.GT, 70)],
+    )
+    generate_signals(spec, df)
+
+    assert 21 in captured_lengths
+    assert signals_module.RSI_PERIOD in captured_lengths  # the exit condition used the default

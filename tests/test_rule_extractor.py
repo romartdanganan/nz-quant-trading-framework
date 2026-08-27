@@ -43,3 +43,18 @@ def test_archetype_detected_but_no_numeric_rule_returns_none():
     result = extract(text, "https://example.com/d")
 
     assert result.spec is None
+
+
+def test_extracts_breakout_channel_high_before_later_conditions():
+    text = (
+        "This breakout strategy enters when price breaks above the 20-day high, "
+        "with volume above 2x average, and exits on a 10-day low."
+    )
+    result = extract(text, "https://example.com/e")
+
+    assert result.spec is not None
+    assert result.spec.archetype == Archetype.BREAKOUT
+    entry = result.spec.entry_conditions[0]
+    assert entry.indicator == Indicator.CHANNEL_HIGH
+    assert entry.operator == Operator.CROSSES_ABOVE
+    assert entry.period == 20

@@ -1,6 +1,15 @@
-"""Orchestrates validation over every "candidate" in the strategy registry: fetches price
-data, runs validate_strategy, and promotes/rejects the registry record accordingly. This is
-what cli/main.py option [2] calls.
+"""Orchestrates validation over every single-ticker ("kind": "single") "candidate" in the
+strategy registry: fetches price data, runs validate_strategy, and promotes/rejects the
+registry record accordingly. Pairs-trading candidates ("kind": "pairs") are handled
+separately by pairs_runner.py, since they need two price series, not one. This is what
+cli/main.py option [2] calls.
+
+Known limitation: every single-ticker candidate is currently backtested against the same
+`ticker` argument (default SPY) regardless of what ticker it was actually discovered
+for — StrategySpec has no ticker field of its own (a strategy is a rule; today nothing
+tracks which ticker(s) that rule should run against). Fine for now since there's no
+watchlist-to-strategy mapping yet, but worth revisiting before this matters for real
+capital allocation.
 """
 from __future__ import annotations
 
@@ -24,7 +33,7 @@ def run_validation(
     lookback_days: int = DEFAULT_LOOKBACK_DAYS,
 ) -> dict:
     registry = registry or StrategyRegistry()
-    candidates = registry.list(status="candidate")
+    candidates = [r for r in registry.list(status="candidate") if r.get("kind", "single") == "single"]
 
     if not candidates:
         return {"candidates": 0, "validated": 0, "rejected": 0, "errored": 0}
