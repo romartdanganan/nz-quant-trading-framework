@@ -100,6 +100,13 @@ always schema-validated before it can reach the backtester (see Guardrails below
 
 ## NZ tax & timezone rules (do not get these wrong)
 
+**Not tax advice — decision-support only.** `nz_tax_fx/` produces estimates for backtesting
+and validation purposes (net-of-tax return figures, the FIF threshold check). It is not a
+filing-ready tax calculation: real NZ FIF rules have edge cases this module simplifies
+(e.g. quick-sale adjustments, attributing interest exclusions). The user must verify actual
+filings with a qualified tax professional or the IRD — same "AI/tooling assists, human
+verifies" principle as trading signals (see Human-in-the-loop execution below).
+
 - **FIF (Foreign Investment Fund) regime**: applies once total cost of foreign shares
   exceeds **NZD $50,000** (the "de minimis" threshold), tracked in `nz_tax_fx/fif_calculator.py`.
   Below the threshold, ordinary capital gains/dividend rules apply instead.
@@ -151,15 +158,16 @@ Registry status values (`strategy_research/registry.py`), in order:
    failed spec and its metrics and move on.
 3. **`incubating`** — a `validated` strategy is *not* promoted straight to real paper
    trading. It first runs as a **forward test**: real-time paper-traded (or shadow-tracked)
-   execution on live/streaming data it has never seen, for a minimum incubation period,
-   before it is trusted with anything (including paper capital sizing decisions). This is
-   the guard against backtest-vs-live divergence. Minimum incubation criteria (tunable in
-   `config.yaml` under `incubation:`, defaults to be set in Phase 7/8 when the paper engine
-   exists): a minimum elapsed duration AND a minimum trade count (whichever is stricter),
-   plus a **live-vs-backtest divergence check** — incubation Sharpe/drawdown/profit factor
-   must not decay beyond a configured tolerance relative to the backtest numbers that got it
-   here. A strategy that decays during incubation is demoted straight to `rejected`, logged
-   with the divergence that killed it — this is a filter, not a warm-up formality.
+   execution on live/streaming data it has never seen, for **at least 1–3 months** (config
+   `incubation.min_days`, floor of 30, prefer 60–90 — this is a widely-cited minimum for
+   surfacing execution bugs, slippage, and timing errors that a backtest can't show) AND a
+   minimum trade count, whichever is stricter — before it is trusted with anything
+   (including paper capital sizing decisions). This is the guard against backtest-vs-live
+   divergence. Also requires a **live-vs-backtest divergence check** — incubation
+   Sharpe/drawdown/profit factor must not decay beyond a configured tolerance relative to
+   the backtest numbers that got it here. A strategy that decays during incubation is
+   demoted straight to `rejected`, logged with the divergence that killed it — this is a
+   filter, not a warm-up formality.
 4. **`proven`** — cleared incubation. Only `proven` strategies are eligible to actually
    receive the CLI's paper-trading capital allocation and dynamic risk sizing
    (`risk_management/`). Re-validate `proven` strategies periodically against fresh
@@ -176,6 +184,41 @@ Registry status values (`strategy_research/registry.py`), in order:
 Maintain a clear, queryable record of every strategy's current stage and full history
 (`data/strategy_registry.json` — tracked in git, since it's project state, not a runtime
 cache) so nothing is silently generated and forgotten, and nothing skips a gate.
+
+## Hardcoded risk circuit breakers (non-negotiable, never AI-adjusted)
+
+`risk_management/` must enforce these as plain deterministic code — constants read from
+`config.yaml`, never inferred, tuned, or overridden by an LLM at runtime:
+
+- **Max position size**: a hard ceiling on the % of total portfolio equity any single trade
+  may risk (`risk_management.max_position_size_pct`), enforced *regardless* of what the
+  ATR/Kelly sizing math outputs — Kelly/ATR can only size *within* this ceiling, never above it.
+- **Mandatory stop-loss on every trade**: no order may open without a stop-loss attached in
+  the same instruction — never a "monitor and decide later" approach.
+- **Max daily loss circuit breaker**: if realized+unrealized portfolio loss on a given day
+  exceeds `risk_management.max_daily_loss_pct`, the execution engine halts all new entries
+  and (config-dependent) flattens open positions for the day — automatically, not on request.
+- These limits apply identically in paper and live trading — paper trading is exactly where
+  you want to discover a circuit breaker is mis-tuned, not live.
+
+## Human-in-the-loop execution
+
+Not everything that clears validation/incubation should place orders unattended:
+
+- **Pure rule-based technical strategies** (the `strategies/` library, backtested and
+  incubated per the lifecycle above) may execute automatically once `proven`, but only
+  **in paper trading**. This is what incubation is *for* — proving the automation itself is
+  trustworthy before it ever touches capital that matters.
+- **Any AI/sentiment-influenced signal** (`quant_engine/screeners/sentiment_scorer.py`, or
+  anything an LLM scored/ranked) is advisory input to the fundamental screener only — it
+  must never auto-trigger an order at any stage, paper or live. The screener's job ends at
+  producing a ranked watchlist with an entry/stop/target; a human reviews and approves before
+  it becomes a trade. This mirrors the tax module's own rule below: AI assists, a human verifies.
+- **Live capital always starts human-confirmed**, independent of how long a strategy spent
+  `proven` in paper trading. Clearing incubation is not authorization for unattended live
+  execution — that's a separate, later decision the user makes explicitly (see Phase 9), and
+  the default even after that decision is a confirm-to-execute mode, not full autonomy,
+  unless the user explicitly chooses to relax it after building a live track record.
 
 ## Guardrails — do not repeat common AI-trader mistakes
 
