@@ -1,0 +1,67 @@
+# --- Secrets & environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Data, logs, caches (runtime artifacts, not source) ---
+data/cache/*
+!data/cache/.gitkeep
+data/historical/*
+!data/historical/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.parquet
+*.csv
+!**/sample_data/*.csv
+
+# --- Backtest / model artifacts ---
+*.pkl
+*.joblib
+backtest_results/
+reports/*.html
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- IB Gateway / TWS local state ---
+ibgateway/
+tws_settings/

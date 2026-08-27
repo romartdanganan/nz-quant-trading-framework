@@ -1,0 +1,69 @@
+# Central configuration for the NZ Quant Trading & Research Framework.
+# Secrets (API keys) live in .env — never here.
+
+base_currency: NZD
+
+timezone:
+  home: Pacific/Auckland          # NZST/NZDT, DST-aware
+  us_market: America/New_York     # NYSE/NASDAQ regular session 09:30-16:00 ET
+
+broker:
+  active: alpaca                  # alpaca | ibkr
+  ibkr:
+    account_type: paper
+  alpaca:
+    account_type: paper
+
+fx:
+  pair: USDNZD
+  refresh_interval_minutes: 15
+  provider: exchangerate.host
+
+nz_tax:
+  fif_threshold_nzd: 50000
+  fif_method: auto                # auto | fdr | cv  (auto picks the lower of FDR/CV where election rules allow)
+  fdr_rate: 0.05
+  tax_year_end: "03-31"           # NZ tax year ends 31 March
+
+validation_thresholds:
+  min_sharpe_ratio: 1.5
+  max_drawdown_pct: 0.15
+  min_profit_factor: 1.3
+  apply_nz_tax_drag: true
+  apply_fx_fees: true
+  fx_fee_pct: 0.005
+
+risk_management:
+  position_sizing_method: atr_kelly     # atr | kelly | atr_kelly
+  atr_period: 14
+  atr_multiplier: 2.0
+  kelly_fraction_cap: 0.5               # cap on fractional Kelly to avoid over-leverage
+  max_risk_per_trade_pct: 0.01
+  max_portfolio_heat_pct: 0.06
+
+watchlists:
+  day_trading:
+    - AAPL
+    - MSFT
+    - NVDA
+    - TSLA
+    - SPY
+  swing_trading:
+    - AAPL
+    - MSFT
+    - GOOGL
+    - AMZN
+    - META
+    - NVDA
+  pairs_trading:
+    - [KO, PEP]
+    - [XOM, CVX]
+
+data:
+  historical_dir: data/historical
+  cache_dir: data/cache
+  log_dir: data/logs
+
+logging:
+  level: INFO
+  file: data/logs/app.log
