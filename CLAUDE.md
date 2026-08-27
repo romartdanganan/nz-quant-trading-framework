@@ -41,6 +41,9 @@ quant_engine/
   screeners/fundamental_screener.py # Phase 5 — deterministic P/E, PEG, D/E, revenue growth, earnings surprise scoring
   screeners/sentiment_scorer.py     # Phase 5 — NLTK VADER headline sentiment (local, no LLM call)
   screeners/watchlist.py            # Phase 5 — combines both + ATR stop/target into the CLI's advisory-only watchlist
+  screeners/earnings_calendar.py    # manual-research extension — upcoming earnings dates + EPS estimates (yfinance)
+  screeners/news_events.py          # manual-research extension — deterministic keyword tagging of headlines
+  screeners/research_briefing.py    # manual-research extension — combines all of the above for CLI option [5] and Claude's own use, see below
 nz_tax_fx/            # Phase 3 — FX conversion, FIF calculator (FDR/CV), tax reports
 strategies/                   # Phase 6 — hand-designed classic reference strategies
   mean_reversion/strategy.py  #   classic_rsi_reversion() -> StrategySpec
@@ -358,6 +361,16 @@ hard constraint, not a suggestion:
   actual trading math — indicators, signals, position sizing, P&L, tax — must execute as
   plain deterministic Python (pandas/numpy/pandas-ta/backtrader/scikit-learn), never as an
   LLM call at runtime.
+  **The user will still ask "what should I invest in" or "what should I look out for"
+  directly, in conversation, for their own manual buy-in decisions — that request is fine;
+  what must never happen is answering it from training-data knowledge or general market
+  opinion.** When asked, run `quant_engine/screeners/research_briefing.py`'s
+  `build_briefing()`/`scan_watchlist()` (or the CLI's option `[5]`) and present its real,
+  freshly-fetched fundamentals/sentiment/upcoming-earnings/headline output — then let the
+  user read the actual headlines and decide. Never paraphrase a headline as if you'd read
+  more into it than the tool surfaced; never state a P/E, earnings date, or sentiment score
+  without having just fetched it. The tool's output is the answer; your job is to run it and
+  present it clearly, not to add an opinion on top of it.
 - **Guard against lookahead / training-data leakage in backtests.** Because LLMs (and any
   data pulled from them) may have memorized historical prices/news, a strategy can look
   "unbeatable" purely because the model already "knew" what happened. Backtests must use

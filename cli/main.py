@@ -16,6 +16,7 @@ MENU = """
   [2] Backtest & Validate (with FIF Tax)
   [3] Run AI Screener
   [4] Run Incubation Cycle (paper trading forward-test)
+  [5] Research Briefing (news, earnings, fundamentals — for manual decisions)
   [0] Exit
 """
 
@@ -88,11 +89,51 @@ def launch_paper_trading() -> None:
     )
 
 
+def run_research_briefing() -> None:
+    from config.settings import settings
+    from quant_engine.screeners.research_briefing import scan_watchlist
+
+    tickers = settings.get("watchlists.swing_trading", [])
+    console.print(f"[cyan]Building research briefings for {len(tickers)} tickers (fundamentals, sentiment, earnings, news)...[/cyan]")
+    briefings = scan_watchlist(tickers)
+
+    table = Table(title="Research Briefing — real data only, no recommendation")
+    for column in ["Ticker", "Price (NZD)", "Fund. Score", "Sentiment", "Next Earnings"]:
+        table.add_column(column)
+    for briefing in briefings:
+        fund = briefing.fundamentals
+        table.add_row(
+            briefing.ticker,
+            f"${briefing.price_nzd:,.2f}" if briefing.price_nzd is not None else "n/a",
+            f"P/E {fund.pe_ratio:.1f}" if fund and fund.pe_ratio is not None else "n/a",
+            f"{briefing.sentiment_score:+.2f}",
+            f"{briefing.upcoming_earnings.earnings_date} ({briefing.upcoming_earnings.days_until}d)"
+            if briefing.upcoming_earnings
+            else "none within window",
+        )
+    console.print(table)
+
+    for briefing in briefings:
+        tagged = [h for h in briefing.headlines if h.tags]
+        if not tagged:
+            continue
+        console.print(f"\n[bold]{briefing.ticker}[/bold] — headlines worth a second look:")
+        for headline in tagged:
+            console.print(f"  [{','.join(headline.tags)}] {headline.title}")
+
+    console.print(
+        "\n[yellow]This is real fundamentals/sentiment/earnings/news data, not a "
+        "recommendation — read the actual headlines above and decide for yourself before "
+        "any manual buy.[/yellow]"
+    )
+
+
 ACTIONS = {
     "1": search_online_strategies,
     "2": backtest_and_validate,
     "3": run_ai_screener,
     "4": launch_paper_trading,
+    "5": run_research_briefing,
 }
 
 
