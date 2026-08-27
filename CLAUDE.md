@@ -64,6 +64,7 @@ execution_ibkr/
 execution_alpaca/
   alpaca_connector.py       # Phase 7 — alpaca-py bracket orders (paper); no live credentials configured yet
   paper_trading_engine.py   # Phase 7 — one incubation polling cycle: signal -> size -> circuit breakers -> order/shadow
+  pairs_paper_trading_engine.py # Phase 7 — pairs-trading counterpart; shadow-only, no two-leg broker execution yet
 risk_management/
   position_sizing.py   # Phase 7 — ATR/Kelly sizing, hard-capped by max_position_size_pct
   stop_target.py        # Phase 7 — stop-loss/target-profit + trailing-stop ratchet
@@ -272,9 +273,18 @@ instead of being forced through the single-ticker path:
 - `paper_trading_engine.py` trades each record's own `record["ticker"]` (set by `runner.py`
   during validation), fetching price data once per unique ticker needed per cycle, not once
   per record — no longer the single-shared-ticker limitation this section used to describe.
-- Known limitations, carried forward honestly rather than hidden: long-only (`StrategySpec`
-  doesn't model a short side yet); pairs-trading incubation isn't wired into
-  `paper_trading_engine.py`.
+- **Fixed**: pairs-trading incubation is now wired via
+  `execution_alpaca/pairs_paper_trading_engine.py`'s `run_pairs_incubation_cycle()` —
+  mirrors `paper_trading_engine.py` exactly (same state-tracking-on-the-record design,
+  same `evaluate_incubation()`/registry transitions downstream), swapping single-ticker
+  signal generation for the hedge-ratio/spread/z-score math from
+  `strategies/pairs_trading/strategy.py`. It stays **shadow-only**, though: a pairs
+  position needs two linked broker legs (long ticker_a, short ticker_b, sized by the hedge
+  ratio), and `alpaca_connector.py`'s `submit_bracket_order()` only places one instrument
+  per call — real two-leg execution is still future work, not hidden here. Both cycles run
+  from `cli/main.py` option `[4]`.
+- Known limitation, carried forward honestly rather than hidden: long-only (`StrategySpec`
+  doesn't model a short side yet).
 
 ## Visual status dashboard
 
@@ -457,7 +467,7 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
 6. **Strategy Library** (done) — hand-designed classic reference strategies for all four archetypes: `classic_rsi_reversion`, `classic_macd_momentum`, `classic_channel_breakout` (added a proper `CHANNEL_HIGH`/`CHANNEL_LOW` indicator + per-condition `period` override to the schema for this), and pairs trading's own `PairsSpec`/cointegration/spread stack (`strategies/`, `backtester/pairs_engine.py`, `quant_engine/validation/pairs_validator.py` + `pairs_runner.py` — see "Pairs trading" above). `library.py` seeds all of them into the registry automatically.
 7. **Execution & Risk Engine** (done) — IBKR (`ib_insync`) and Alpaca (`alpaca-py`) bracket-order connectors (both refuse a naked order), NZT market-hours conversion, ATR/Kelly position sizing, stop/target + trailing-stop logic, and the hardcoded circuit breakers, all wired through `quant_engine/validation/incubation.py`'s forward-test decision logic and `execution_alpaca/paper_trading_engine.py`'s one-cycle-at-a-time paper execution loop (`execution_ibkr/`, `execution_alpaca/`, `risk_management/` — see "Execution & incubation engine" above for what's real vs. unverified-pending-credentials/TWS).
-8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle already, each candidate validated/traded on its own best-fit ticker from `strategy_validation.universe` (the single-shared-ticker limitation is fixed); only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call option `[4]` repeatedly, and extend incubation to pairs-trading candidates.
+8. **CLI wiring & end-to-end paper trading** — option `[4]` runs one incubation cycle for both single-ticker and pairs-trading candidates already, each candidate validated/traded on its own best-fit ticker from `strategy_validation.universe` (the single-shared-ticker limitation is fixed); only `proven` strategies should get real paper-trading capital once the daily-schedule piece exists. Remaining work: wire a recurring scheduler (not a Claude Code session) to call option `[4]` repeatedly, and build real two-leg broker execution for pairs (currently shadow-only).
 9. **Live-readiness review** — re-validate thresholds, tax handling, incubation track record, and risk controls before any live capital is considered.
 
 Confirm with the user before starting each new phase — build and commit one phase at a time.

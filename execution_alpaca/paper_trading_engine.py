@@ -16,8 +16,10 @@ Each record trades whichever ticker runner.py recorded it as validated on
 that predate that field. Price data is fetched once per unique ticker needed this cycle,
 not once per record.
 
-Known limitations: long-only (StrategySpec doesn't model short-side direction yet);
-pairs-trading incubation isn't wired here.
+Known limitation: long-only (StrategySpec doesn't model short-side direction yet).
+Pairs-trading incubation is handled separately by
+execution_alpaca/pairs_paper_trading_engine.py, since it needs a spread position, not a
+single-instrument one.
 """
 from __future__ import annotations
 

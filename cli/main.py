@@ -72,14 +72,18 @@ def run_ai_screener() -> None:
 
 
 def launch_paper_trading() -> None:
+    from execution_alpaca.pairs_paper_trading_engine import run_pairs_incubation_cycle
     from execution_alpaca.paper_trading_engine import run_incubation_cycle
     from quant_engine.validation.incubation import process_incubating_strategies, start_incubation_for_validated
 
     console.print("[cyan]Promoting any newly-validated strategies into incubation...[/cyan]")
     console.print(start_incubation_for_validated())
 
-    console.print("[cyan]Running one incubation polling cycle (paper, not live)...[/cyan]")
+    console.print("[cyan]Running one single-ticker incubation polling cycle (paper, not live)...[/cyan]")
     console.print(run_incubation_cycle())
+
+    console.print("[cyan]Running one pairs-trading incubation polling cycle (shadow only — see CLAUDE.md)...[/cyan]")
+    console.print(run_pairs_incubation_cycle())
 
     console.print("[cyan]Evaluating incubation progress (promote/reject)...[/cyan]")
     console.print(process_incubating_strategies())
