@@ -49,6 +49,26 @@ and don't let broker-specific code leak into the backtester:
 - `quant_engine/validation/` is the only gate a strategy passes through before it's allowed
   into paper trading — it must apply tax drag and FX fees before checking thresholds.
 
+## AI-assisted research workflow (hybrid — important)
+
+This is the user's deliberate, cost-conscious workflow. Follow it rather than doing
+everything through Claude Code end-to-end:
+
+- **Claude Code's job**: scaffold the repo, write the Python modules, wire broker/data
+  APIs, write the backtesting and validation math, run tests, and manage git/GitHub. Claude
+  Code is the **engineering and code-writing engine** — not the source of trading decisions
+  (see Guardrails below).
+- **Gemini's job (external, run by the user)**: for context-heavy research — e.g. dumping
+  100-page academic trading-strategy PDFs, or thousands of lines of raw scraped forum
+  threads — the user runs that through Gemini's large (1M+ token) context window to
+  distill it down to plain strategy logic *before* handing it to Claude Code.
+- **Practical implication**: `strategy_research/translator/nl_to_rules.py` should be built
+  to accept already-distilled strategy descriptions (a paragraph or short spec, whether
+  typed by the user or produced by Gemini) as its primary input — it does not need to
+  ingest raw 100-page PDFs or huge scraped dumps itself. The `strategy_research/scrapers/`
+  modules are for lighter-weight, targeted lookups (a specific forum thread, a specific
+  GitHub repo), not bulk corpus ingestion.
+
 ## NZ tax & timezone rules (do not get these wrong)
 
 - **FIF (Foreign Investment Fund) regime**: applies once total cost of foreign shares
@@ -84,6 +104,58 @@ fees (`quant_engine/validation/`, thresholds in `config.yaml` under `validation_
 `overfit_guard.py` must also confirm out-of-sample / walk-forward performance doesn't
 materially decay versus in-sample before a strategy is considered validated.
 
+## Strategy lifecycle — bin the losers, keep the winners
+
+Every strategy discovered/translated/backtested must go through a pass/fail lifecycle, not
+just be generated and left lying around:
+
+1. Translate (`strategy_research/`) → implement (`strategies/`) → backtest (`backtester/`)
+   → validate (`quant_engine/validation/`) against the thresholds above.
+2. **Strategies that fail validation are rejected, not fixed by relaxing thresholds or
+   retrying until something passes** — that's p-hacking / overfitting to the backtest.
+   Log the failed spec and its metrics (e.g. under `data/logs/` or a `strategy_registry`
+   — decide the concrete mechanism in Phase 4/6) and move on to the next candidate.
+3. Only strategies that clear validation get promoted into `strategies/` as real,
+   paper-trading-eligible implementations. Maintain a clear record of what was tried,
+   what passed, and what was rejected and why — don't silently discard the history, since
+   it prevents re-testing the same dead-end idea later.
+4. Re-validate periodically (walk-forward on new data) — a strategy that passed once is not
+   permanently trusted; performance decay should demote it back out of live paper trading.
+
+## Guardrails — do not repeat common AI-trader mistakes
+
+These are known failure modes in AI-built trading systems. Treat every one of these as a
+hard constraint, not a suggestion:
+
+- **Never use the LLM as the trading decision-maker.** Don't build a flow where the model
+  is asked "what stock should I buy today" or similar, and don't let an LLM's own judgment
+  substitute for computed signals. LLMs hallucinate, echo mainstream news hype, and get
+  quantitative nuance wrong. The model's role is fixed to *writing code*: data pipelines,
+  scrapers, translating natural-language rules into structured logic, and wiring APIs. All
+  actual trading math — indicators, signals, position sizing, P&L, tax — must execute as
+  plain deterministic Python (pandas/numpy/pandas-ta/backtrader/scikit-learn), never as an
+  LLM call at runtime.
+- **Guard against lookahead / training-data leakage in backtests.** Because LLMs (and any
+  data pulled from them) may have memorized historical prices/news, a strategy can look
+  "unbeatable" purely because the model already "knew" what happened. Backtests must use
+  strictly time-sliced historical data from a real market-data API (never from LLM
+  knowledge or recall), with walk-forward / out-of-sample splits, and must never let a
+  strategy's rules or parameters be tuned using information from outside its training
+  window. `quant_engine/validation/overfit_guard.py` is responsible for enforcing this.
+- **Don't rely on fragile, arbitrary web scraping for price/market data.** HTML layouts
+  change, IPs get blocked, and scrapers silently break. Use standardized market-data APIs
+  (`yfinance`, broker APIs, or similar) for all price/fundamentals data. Scraping
+  (`strategy_research/scrapers/`) is only for strategy *concept* text (forum posts, blog
+  write-ups, README files) — never for OHLCV or fundamentals data that a proper API can
+  provide.
+- **Never ignore operational costs.** A strategy that looks profitable gross is worthless
+  if broker commissions, bid/ask spread, USD/NZD FX conversion spread, and NZ FIF tax drag
+  eat the edge. Every backtest and validation run must subtract realistic spread/slippage
+  and FX fees (`fx_fee_pct` in `config.yaml`) and apply NZ tax drag (`nz_tax_fx/`) *before*
+  checking Sharpe/MaxDD/Profit Factor — a strategy is only "valid" net of all of these, per
+  the Validation gate above. Never report or act on a pre-cost, pre-tax return figure as if
+  it were realistic.
+
 ## GitHub / version control workflow
 
 - Repo: private, created via `gh repo create` under the authenticated GitHub account.
@@ -106,9 +178,9 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 1. **Scaffold** (done) — directory structure, configs, .gitignore, CLAUDE.md, GitHub repo.
 2. **Strategy Discovery Engine** — forum/blog/GitHub scrapers + NL-to-rules translator (`strategy_research/`).
 3. **NZ Tax & FX Engine** — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
-4. **Backtesting & Validation Engine** — backtrader integration, metrics, overfit guard (`backtester/`, `quant_engine/validation/`).
+4. **Backtesting & Validation Engine** — backtrader integration, metrics, overfit guard, and a strategy registry (tried/passed/rejected record — see Strategy Lifecycle above) (`backtester/`, `quant_engine/validation/`).
 5. **Screener & Sentiment Engine** — fundamental screener + news sentiment scoring (`quant_engine/screeners/`).
-6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout (`strategies/`).
+6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only validated strategies get promoted here (`strategies/`).
 7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
 8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; run full paper-trading loop.
 9. **Live-readiness review** — re-validate thresholds, tax handling, and risk controls before any live capital is considered.
