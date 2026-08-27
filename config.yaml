@@ -67,6 +67,17 @@ circuit_breakers:
   max_daily_loss_pct: 0.02              # halt new entries + flatten (config-dependent) for the day
   require_stop_loss_on_every_order: true
 
+# Fundamental screener + sentiment (Phase 5). Output is advisory only — CLAUDE.md
+# Human-in-the-loop: a human reviews and approves before anything here becomes a trade.
+screener:
+  max_pe: 40.0
+  max_peg: 3.0
+  max_debt_to_equity: 150.0
+  min_revenue_growth: 0.0
+  min_earnings_surprise_pct: -5.0
+  reward_risk_ratio: 2.0                # target distance = stop distance * this ratio
+  sentiment_headline_limit: 10
+
 watchlists:
   day_trading:
     - AAPL

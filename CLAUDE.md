@@ -35,7 +35,9 @@ quant_engine/
   validation/overfit_guard.py# Phase 4 — walk-forward in/out-of-sample Sharpe decay check
   validation/validator.py    # Phase 4 — the single candidate->validated/rejected gate
   validation/runner.py       # Phase 4 — drives validator.py over every registry "candidate"
-  screeners/                 # Phase 5 — fundamental + sentiment screeners
+  screeners/fundamental_screener.py # Phase 5 — deterministic P/E, PEG, D/E, revenue growth, earnings surprise scoring
+  screeners/sentiment_scorer.py     # Phase 5 — NLTK VADER headline sentiment (local, no LLM call)
+  screeners/watchlist.py            # Phase 5 — combines both + ATR stop/target into the CLI's advisory-only watchlist
 nz_tax_fx/            # Phase 3 — FX conversion, FIF calculator (FDR/CV), tax reports
 strategies/           # Phase 6 — mean_reversion, momentum, pairs_trading, breakout
 backtester/
@@ -301,7 +303,7 @@ git checkout -b feature/<name>  # for larger/riskier changes; merge back to main
 2. **Strategy Discovery Engine** (done) — automated scrape→extract→distill pipeline, schema-validated `StrategySpec`, and the `strategy_registry.json` (`status="candidate"`) (`strategy_research/`).
 3. **NZ Tax & FX Engine** (done) — FX converter, FIF/FDR/CV calculator, tax reports (`nz_tax_fx/`).
 4. **Backtesting & Validation Engine** (done) — backtrader integration (via pure-pandas `signals.py` + `engine.py`), Sharpe/MaxDD/ProfitFactor metrics net of NZ tax/FX drag, walk-forward overfit guard; `runner.py` promotes registry entries `candidate` → `validated`/`rejected` (`backtester/`, `quant_engine/validation/`). Known limitation: `BOLLINGER_BANDS` conditions and stop-loss/position-sizing are not yet modeled — see "Known Phase 4 backtest engine limitations" above.
-5. **Screener & Sentiment Engine** — fundamental screener + news sentiment scoring (`quant_engine/screeners/`).
+5. **Screener & Sentiment Engine** (done) — deterministic fundamental screener (P/E, PEG, D/E, revenue growth, earnings surprise via yfinance) + NLTK VADER headline sentiment (local, no LLM call); `watchlist.py` combines both into a ranked, ATR-based entry/stop/target watchlist — advisory-only per Human-in-the-loop below, wired to CLI option `[3]` (`quant_engine/screeners/`). Known limitation: VADER is a general-purpose lexicon, not finance-tuned — treat scores as directional, not precise.
 6. **Strategy Library** — implement mean reversion, momentum, pairs trading, breakout; only `validated` strategies get real implementations here (`strategies/`).
 7. **Execution & Risk Engine** — IBKR/Alpaca connectors, market-hours scheduling, ATR/Kelly sizing, stop/target logic, and the **incubation forward-test engine** that runs `validated` strategies live-but-unfunded and promotes/demotes `incubating` → `proven`/`rejected` (`execution_ibkr/`, `execution_alpaca/`, `risk_management/`).
 8. **CLI wiring & end-to-end paper trading** — connect all menu options in `cli/main.py` to the real modules; only `proven` strategies get real paper-trading capital.

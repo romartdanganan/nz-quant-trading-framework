@@ -6,6 +6,7 @@ for the phase roadmap). Run with: python -m cli.main
 from __future__ import annotations
 
 from rich.console import Console
+from rich.table import Table
 
 console = Console()
 
@@ -36,7 +37,30 @@ def backtest_and_validate() -> None:
 
 
 def run_ai_screener() -> None:
-    console.print("[yellow]Not yet implemented — see quant_engine/screeners/[/yellow]")
+    from config.settings import settings
+    from quant_engine.screeners.watchlist import build_watchlist
+
+    tickers = settings.get("watchlists.swing_trading", [])
+    console.print(f"[cyan]Screening {len(tickers)} tickers (fundamentals + sentiment)...[/cyan]")
+    entries = build_watchlist(tickers)
+
+    table = Table(title="Watchlist — for review only, not auto-traded")
+    for column in ["Ticker", "Fund. Score", "Sentiment", "Entry", "Stop", "Target"]:
+        table.add_column(column)
+    for entry in entries:
+        table.add_row(
+            entry.ticker,
+            f"{entry.fundamental_score:.0f}",
+            f"{entry.sentiment_label} ({entry.sentiment_score:+.2f})",
+            f"{entry.entry_price:.2f}",
+            f"{entry.stop_loss:.2f}",
+            f"{entry.target_price:.2f}",
+        )
+    console.print(table)
+    console.print(
+        "[yellow]Advisory only — review each idea and verify no breaking news before "
+        "approving any trade manually.[/yellow]"
+    )
 
 
 def launch_paper_trading() -> None:

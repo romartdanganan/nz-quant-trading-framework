@@ -17,7 +17,7 @@ scikit-learn==1.5.2
 scipy==1.14.1
 
 # --- NLP / strategy translation / sentiment ---
-nltk==3.9.1
+nltk==3.10.3            # 3.9.1 pin was a guess; verified working version for Python 3.13
 google-genai==2.20.0    # Gemini API client — fallback distiller only, see CLAUDE.md
 praw==8.0.3             # Reddit API (official) for strategy_research scrapers
 feedparser==6.0.12      # blog RSS feeds
