@@ -18,6 +18,12 @@ scipy==1.14.1
 
 # --- NLP / strategy translation / sentiment ---
 nltk==3.9.1
+google-genai==1.2.0     # Gemini API client — fallback distiller only, see CLAUDE.md
+praw==7.8.1             # Reddit API (official) for strategy_research scrapers
+feedparser==6.0.11      # blog RSS feeds
+
+# --- Retry/backoff for external API calls (Gemini free-tier quota handling) ---
+tenacity==9.0.0
 
 # --- Config / env / CLI ---
 python-dotenv==1.0.1

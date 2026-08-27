@@ -20,7 +20,7 @@ MENU = """
 
 
 def search_online_strategies() -> None:
-    console.print("[yellow]Not yet implemented — see strategy_research/[/yellow]")
+    console.print("[yellow]Not yet implemented — runs strategy_research/pipeline.py end-to-end[/yellow]")
 
 
 def backtest_and_validate() -> None:

@@ -23,7 +23,13 @@ pytest                              # run tests
 ## Architecture
 
 ```
-strategy_research/   # Phase 2 — web scraping (forums, blogs, GitHub) + NL-to-rules translator
+strategy_research/            # Phase 2 — automated discovery pipeline (see below)
+  scrapers/                   #   GitHub/Reddit/RSS/arXiv API pulls (no raw HTML scraping)
+  translator/rule_extractor.py#   free, deterministic vocabulary-based extraction (primary)
+  translator/nl_to_rules.py   #   normalizes any candidate into a schema-validated StrategySpec
+  distiller/gemini_client.py  #   Gemini API fallback for low-confidence/bulk input only
+  vocabulary.py                #   controlled indicator/strategy-archetype vocabulary
+  pipeline.py                  #   orchestrates scrape->extract->distill->translate->registry
 quant_engine/         # Phase 4/5 — validation metrics, overfit guard, fundamental + sentiment screeners
 nz_tax_fx/            # Phase 3 — FX conversion, FIF calculator (FDR/CV), tax reports
 strategies/           # Phase 6 — mean_reversion, momentum, pairs_trading, breakout
@@ -49,25 +55,48 @@ and don't let broker-specific code leak into the backtester:
 - `quant_engine/validation/` is the only gate a strategy passes through before it's allowed
   into paper trading — it must apply tax drag and FX fees before checking thresholds.
 
-## AI-assisted research workflow (hybrid — important)
+## Automated strategy discovery pipeline (important — no manual steps)
 
-This is the user's deliberate, cost-conscious workflow. Follow it rather than doing
-everything through Claude Code end-to-end:
+The user explicitly wants **zero manual work**: no copy-pasting scraped content into a
+browser, no running a separate tool by hand. The whole chain — scrape → distill → translate
+→ backtest → validate → bin/keep — runs from a single trigger (`cli/main.py` option
+`[1] Search Online Strategies`, or a future `scripts/` entrypoint), **on-demand only** (not
+on a recurring schedule, per the user's explicit choice — revisit only if they ask).
 
-- **Claude Code's job**: scaffold the repo, write the Python modules, wire broker/data
-  APIs, write the backtesting and validation math, run tests, and manage git/GitHub. Claude
-  Code is the **engineering and code-writing engine** — not the source of trading decisions
-  (see Guardrails below).
-- **Gemini's job (external, run by the user)**: for context-heavy research — e.g. dumping
-  100-page academic trading-strategy PDFs, or thousands of lines of raw scraped forum
-  threads — the user runs that through Gemini's large (1M+ token) context window to
-  distill it down to plain strategy logic *before* handing it to Claude Code.
-- **Practical implication**: `strategy_research/translator/nl_to_rules.py` should be built
-  to accept already-distilled strategy descriptions (a paragraph or short spec, whether
-  typed by the user or produced by Gemini) as its primary input — it does not need to
-  ingest raw 100-page PDFs or huge scraped dumps itself. The `strategy_research/scrapers/`
-  modules are for lighter-weight, targeted lookups (a specific forum thread, a specific
-  GitHub repo), not bulk corpus ingestion.
+Pipeline stages (`strategy_research/pipeline.py` is the orchestrator):
+
+1. **Scrape** (`strategy_research/scrapers/`) — pull raw strategy-concept text from
+   **official APIs only**, never fragile HTML scraping: GitHub Search API, Reddit API
+   (e.g. r/algotrading), quant-blog RSS feeds, arXiv API for papers. Dedup against
+   `data/cache/seen_sources.json` so the same source is never reprocessed.
+2. **Extract — primary path, free and deterministic**
+   (`strategy_research/translator/rule_extractor.py` + `strategy_research/vocabulary.py`):
+   match scraped text against a controlled vocabulary of known indicators (RSI, MACD,
+   Bollinger Bands, ATR, VWAP, z-score/spread, breakout+volume) and the four strategy
+   archetypes this repo targets (mean reversion, momentum, pairs trading, breakout). This
+   covers the large majority of scraped content with **no LLM call at all** — no quota risk,
+   no hallucination risk in something that will eventually drive trades.
+3. **Distill — fallback path, Gemini free tier** (`strategy_research/distiller/gemini_client.py`):
+   used **only** when the rule extractor has low confidence, or the input is a genuinely
+   large raw corpus (a long PDF, a huge forum thread) where Gemini's large context window is
+   actually needed — this is the original justification for using Gemini at all; it is not
+   the backbone of every scrape. Capped per run via `research_pipeline.max_gemini_calls_per_run`
+   in `config.yaml`. On a 429/quota error, log and **skip that item — never crash the run**;
+   free-tier quotas are tight and the pipeline must degrade gracefully. Note: Google's free
+   tier may use submitted input to improve their models — acceptable here since inputs are
+   already-public forum/blog text, but don't send anything else through this path.
+4. **Translate & validate schema** (`strategy_research/translator/nl_to_rules.py`): whichever
+   path produced the candidate, it must be normalized into a schema-validated `StrategySpec`
+   (`strategy_research/strategy_spec.py`) before proceeding — reject anything that doesn't
+   map cleanly onto the controlled vocabulary rather than guessing.
+5. **Backtest → validate → bin/keep**: hand off to `backtester/` and
+   `quant_engine/validation/` per the Strategy Lifecycle section below; `pipeline.py` is the
+   concrete mechanism that appends to the strategy registry.
+
+Claude Code's own role stays as before: write and maintain all of this as deterministic
+Python — the pipeline *code* is engineered by Claude Code, but no step in the pipeline lets
+an LLM (Gemini or otherwise) decide entry/exit rules unsupervised; extraction output is
+always schema-validated before it can reach the backtester (see Guardrails below).
 
 ## NZ tax & timezone rules (do not get these wrong)
 

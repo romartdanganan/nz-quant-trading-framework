@@ -19,6 +19,14 @@ fx:
   refresh_interval_minutes: 15
   provider: exchangerate.host
 
+research_pipeline:
+  cadence: on_demand              # on_demand only — no recurring/scheduled runs
+  max_sources_per_run: 25         # cap scraped items per pipeline run
+  use_gemini_fallback: true
+  gemini_model: gemini-2.5-flash  # free-tier model; re-check current free-tier options before use
+  max_gemini_calls_per_run: 10    # keep well under free-tier daily quota
+  seen_sources_cache: data/cache/seen_sources.json
+
 nz_tax:
   fif_threshold_nzd: 50000
   fif_method: auto                # auto | fdr | cv  (auto picks the lower of FDR/CV where election rules allow)
