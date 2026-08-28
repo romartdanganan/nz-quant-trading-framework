@@ -63,6 +63,14 @@ strategy_validation:
     - MSFT
     - NVDA
     - TSLA
+    - QQQ
+    - IWM
+    - GLD
+    - AMD
+    - GOOGL
+    - AMZN
+    - META
+    - XOM
 
 # Forward-testing / incubation gate (Strategy Lifecycle in CLAUDE.md). A "validated"
 # (backtest-passed) strategy must clear this live-but-unfunded forward test before it is
