@@ -103,15 +103,23 @@ def run_research_briefing() -> None:
     briefings = scan_watchlist(tickers)
 
     table = Table(title="Research Briefing — real data only, no recommendation")
-    for column in ["Ticker", "Price (NZD)", "Fund. Score", "Sentiment", "Next Earnings"]:
+    for column in ["Ticker", "Price (NZD)", "Fund. Score", "Sentiment", "Last Earnings", "Next Earnings"]:
         table.add_column(column)
     for briefing in briefings:
         fund = briefing.fundamentals
+        last = briefing.last_earnings
+        if last is None:
+            last_earnings_cell = "no reported earnings found"
+        elif last.surprise_pct is not None:
+            last_earnings_cell = f"{last.earnings_date} ({last.days_since}d ago), surprise {last.surprise_pct:+.1f}%"
+        else:
+            last_earnings_cell = f"{last.earnings_date} ({last.days_since}d ago)"
         table.add_row(
             briefing.ticker,
             f"${briefing.price_nzd:,.2f}" if briefing.price_nzd is not None else "n/a",
             f"P/E {fund.pe_ratio:.1f}" if fund and fund.pe_ratio is not None else "n/a",
             f"{briefing.sentiment_score:+.2f}",
+            last_earnings_cell,
             f"{briefing.upcoming_earnings.earnings_date} ({briefing.upcoming_earnings.days_until}d)"
             if briefing.upcoming_earnings
             else "none within window",

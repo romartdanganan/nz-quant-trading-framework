@@ -20,6 +20,16 @@ class UpcomingEarnings:
     days_until: int
 
 
+@dataclass(frozen=True)
+class RecentEarnings:
+    ticker: str
+    earnings_date: date
+    eps_estimate: float | None
+    reported_eps: float | None
+    surprise_pct: float | None
+    days_since: int
+
+
 def get_upcoming_earnings(ticker: str, within_days: int = DEFAULT_WITHIN_DAYS) -> UpcomingEarnings | None:
     try:
         earnings = yf.Ticker(ticker).get_earnings_dates(limit=8)
@@ -52,3 +62,39 @@ def get_upcoming_earnings(ticker: str, within_days: int = DEFAULT_WITHIN_DAYS) -
 def scan_watchlist_earnings(tickers: list[str], within_days: int = DEFAULT_WITHIN_DAYS) -> list[UpcomingEarnings]:
     results = [get_upcoming_earnings(ticker, within_days) for ticker in tickers]
     return sorted((r for r in results if r is not None), key=lambda r: r.days_until)
+
+
+def get_last_earnings(ticker: str) -> RecentEarnings | None:
+    """Most recent ALREADY-REPORTED earnings (actual EPS + surprise%), regardless of how
+    long ago — callers decide what counts as "recent enough" via days_since.
+    """
+    try:
+        earnings = yf.Ticker(ticker).get_earnings_dates(limit=8)
+    except Exception:
+        return None
+    if earnings is None or earnings.empty or "Reported EPS" not in earnings.columns:
+        return None
+
+    today = date.today()
+    reported_rows = earnings.dropna(subset=["Reported EPS"])
+    past_dates = sorted({idx.date() for idx in reported_rows.index if idx.date() <= today}, reverse=True)
+    if not past_dates:
+        return None
+
+    most_recent_date = past_dates[0]
+    row = reported_rows.loc[[idx for idx in reported_rows.index if idx.date() == most_recent_date][0]]
+    eps_estimate = row.get("EPS Estimate")
+    reported_eps = row.get("Reported EPS")
+    surprise_pct = row.get("Surprise(%)")
+
+    def _clean(value):
+        return float(value) if value == value else None  # NaN != NaN
+
+    return RecentEarnings(
+        ticker=ticker,
+        earnings_date=most_recent_date,
+        eps_estimate=_clean(eps_estimate),
+        reported_eps=_clean(reported_eps),
+        surprise_pct=_clean(surprise_pct),
+        days_since=(today - most_recent_date).days,
+    )

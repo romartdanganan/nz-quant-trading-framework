@@ -46,6 +46,11 @@ validation_thresholds:
   apply_nz_tax_drag: true
   apply_fx_fees: true
   fx_fee_pct: 0.005
+  # A Sharpe/Profit-Factor estimate from too few trades is close to meaningless (could
+  # easily be luck, not edge) — reject on sample size before even looking at the ratios.
+  # 20 is a practical minimum, not a rigorous statistical threshold; raise it if you want
+  # more confidence at the cost of rejecting more strategies.
+  min_trades: 20
 
 # Universe each single-ticker strategy candidate is validated/incubated against (fixes a
 # previously-documented limitation: candidates used to all be tested against one hardcoded

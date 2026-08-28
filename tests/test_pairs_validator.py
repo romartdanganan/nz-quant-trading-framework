@@ -10,7 +10,7 @@ def _fake_backtest_result() -> PairsBacktestResult:
     idx = pd.date_range("2024-01-01", periods=5, freq="D")
     return PairsBacktestResult(
         equity_curve=pd.Series([100_000, 100_500, 101_000, 100_800, 101_500], index=idx),
-        trades=[{"pnl_comm": 500}],
+        trades=[{"pnl_comm": 500}] * 20,  # >= min_trades so these tests exercise later gates
     )
 
 
@@ -54,6 +54,25 @@ def test_rejects_on_low_sharpe_even_if_cointegrated(monkeypatch):
 
     assert result.passed is False
     assert "Sharpe" in result.reason
+
+
+def test_rejects_too_few_trades_even_if_cointegrated(monkeypatch):
+    monkeypatch.setattr(pairs_validator, "check_cointegration", lambda a, b: 0.01)
+    idx = pd.date_range("2024-01-01", periods=5, freq="D")
+    monkeypatch.setattr(
+        pairs_validator,
+        "run_pairs_backtest",
+        lambda spec, a, b: PairsBacktestResult(
+            equity_curve=pd.Series([100_000, 100_500, 101_000, 100_800, 101_500], index=idx),
+            trades=[{"pnl_comm": 500}] * 3,
+        ),
+    )
+    price_a, price_b = _series()
+
+    result = pairs_validator.validate_pairs_strategy(build_pairs_spec("A", "B"), price_a, price_b)
+
+    assert result.passed is False
+    assert "trades" in result.reason
 
 
 def test_rejects_no_trades(monkeypatch):

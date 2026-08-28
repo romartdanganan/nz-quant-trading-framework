@@ -11,7 +11,7 @@ def _fake_backtest_result() -> BacktestResult:
     idx = pd.date_range("2024-01-01", periods=5, freq="D")
     return BacktestResult(
         equity_curve=pd.Series([100, 101, 102, 103, 104], index=idx),
-        trades=[{"pnl_comm": 10}],
+        trades=[{"pnl_comm": 10}] * 20,  # >= min_trades so these tests exercise later gates
     )
 
 
@@ -73,6 +73,24 @@ def test_validate_strategy_rejects_unsupported_indicator(monkeypatch):
 
     assert result.passed is False
     assert "unsupported indicator" in result.reason
+
+
+def test_validate_strategy_rejects_too_few_trades_even_with_good_metrics(monkeypatch):
+    idx = pd.date_range("2024-01-01", periods=5, freq="D")
+    monkeypatch.setattr(
+        validator,
+        "run_backtest",
+        lambda spec, data: BacktestResult(
+            equity_curve=pd.Series([100, 105, 110, 115, 120], index=idx),
+            trades=[{"pnl_comm": 10}] * 3,  # well under the default min_trades
+        ),
+    )
+
+    result = validator.validate_strategy(spec=object(), price_data=pd.DataFrame({"close": [1, 2, 3]}))
+
+    assert result.passed is False
+    assert "trades" in result.reason
+    assert result.metrics is None  # rejected before any ratio is even computed
 
 
 def test_validate_strategy_rejects_no_trades(monkeypatch):

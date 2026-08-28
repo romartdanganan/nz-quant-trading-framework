@@ -45,6 +45,7 @@ def validate_strategy(
     min_sharpe = settings.get("validation_thresholds.min_sharpe_ratio", 1.5)
     max_drawdown = settings.get("validation_thresholds.max_drawdown_pct", 0.15)
     min_profit_factor = settings.get("validation_thresholds.min_profit_factor", 1.3)
+    min_trades = settings.get("validation_thresholds.min_trades", 20)
     apply_tax = settings.get("validation_thresholds.apply_nz_tax_drag", True)
     apply_fx = settings.get("validation_thresholds.apply_fx_fees", True)
     fx_fee_pct = settings.get("validation_thresholds.fx_fee_pct", 0.005)
@@ -56,6 +57,12 @@ def validate_strategy(
 
     if result.equity_curve.empty or not result.trades:
         return ValidationResult(False, "strategy produced no trades over the backtest period")
+    if len(result.trades) < min_trades:
+        return ValidationResult(
+            False,
+            f"only {len(result.trades)} trades over the backtest period "
+            f"(need >= {min_trades} for the Sharpe/ProfitFactor estimate to be meaningful)",
+        )
 
     equity_curve = result.equity_curve
     if apply_fx:

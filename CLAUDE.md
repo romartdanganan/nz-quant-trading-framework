@@ -177,9 +177,21 @@ in `config.yaml` under `validation_thresholds`):
 - Sharpe Ratio > 1.5
 - Max Drawdown < 15%
 - Profit Factor > 1.3
+- At least `validation_thresholds.min_trades` trades (default 20) over the backtest period
 
 `overfit_guard.py` must also confirm out-of-sample / walk-forward performance doesn't
 materially decay versus in-sample before a strategy is considered validated.
+
+**Why min_trades exists, and why the Sharpe threshold itself was NOT touched:** after the
+three tax/FX bugs below were fixed, several strategies still cleared 1.5+ Sharpe on
+suspiciously tiny sample sizes (1, 3, 5 trades) — a ratio computed from that few data points
+is not a meaningful estimate of anything, good or bad. The min_trades gate rejects those
+before their Sharpe/MaxDD/ProfitFactor are even computed (`result.metrics` stays `None`).
+The user asked directly whether 1.5 Sharpe is "too high" — the answer is no: 1.5 sits in the
+normal "good/tradeable" range (industry rule of thumb: <1 mediocre, 1-2 good, 2-3 excellent,
+>3 usually indicates overfitting or a data bug), so lowering it post-hoc after strategies
+narrowly missed it would have been goalpost-moving, not a fix. Add statistical-reliability
+gates like min_trades instead of relaxing the threshold itself.
 
 **These three ratios are computed on an FX-fee-adjusted but NOT tax-adjusted equity
 curve.** This looks like it contradicts the original brief ("after accounting for NZ tax

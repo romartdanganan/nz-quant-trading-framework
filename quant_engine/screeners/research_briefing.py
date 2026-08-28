@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from nz_tax_fx.fx_converter import FXConverter
-from quant_engine.screeners.earnings_calendar import UpcomingEarnings, get_upcoming_earnings
+from quant_engine.screeners.earnings_calendar import RecentEarnings, UpcomingEarnings, get_last_earnings, get_upcoming_earnings
 from quant_engine.screeners.fundamental_screener import FundamentalDataUnavailable, FundamentalMetrics, fetch_fundamentals
 from quant_engine.screeners.news_events import tag_headline
 from quant_engine.screeners.sentiment_scorer import fetch_headlines, score_headlines
@@ -39,6 +39,7 @@ class ResearchBriefing:
     price_nzd: float | None
     sentiment_score: float
     upcoming_earnings: UpcomingEarnings | None
+    last_earnings: RecentEarnings | None
     headlines: list[HeadlineItem] = field(default_factory=list)
 
 
@@ -64,6 +65,7 @@ def build_briefing(
     ]
     overall_sentiment = score_headlines(headlines_raw)
     upcoming = get_upcoming_earnings(ticker, within_days=earnings_within_days)
+    last_earnings = get_last_earnings(ticker)
 
     return ResearchBriefing(
         ticker=ticker,
@@ -71,6 +73,7 @@ def build_briefing(
         price_nzd=price_nzd,
         sentiment_score=overall_sentiment,
         upcoming_earnings=upcoming,
+        last_earnings=last_earnings,
         headlines=headline_items,
     )
 

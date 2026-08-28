@@ -27,12 +27,7 @@
     "created_at": "2026-08-27T15:16:54.808579+00:00",
     "id": "5648b953b8dd483c8a0476f5e5dff83b",
     "status": "rejected",
-    "metrics": {
-      "sharpe_ratio": 1.1806872059108229,
-      "max_drawdown_pct": 0.0007784623953641078,
-      "profit_factor": 999.0,
-      "net_return_nzd": -2297.891603213233
-    },
+    "metrics": null,
     "history": [
       {
         "status": "candidate",
@@ -49,6 +44,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 1.18 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -102,6 +105,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.03 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.03 <= required 1.5"
       }
     ]
   },
@@ -139,12 +150,7 @@
     "created_at": "2026-08-27T15:16:54.808603+00:00",
     "id": "8214dfb717484efda977c30417feebd6",
     "status": "rejected",
-    "metrics": {
-      "sharpe_ratio": -0.08694233964783345,
-      "max_drawdown_pct": 0.0002109375768988637,
-      "profit_factor": 0.0,
-      "net_return_nzd": -2474.8759235650723
-    },
+    "metrics": null,
     "history": [
       {
         "status": "candidate",
@@ -161,6 +167,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe -0.09 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -192,6 +206,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.992 >= 0.05)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
       },
       {
         "status": "rejected",
@@ -231,6 +253,14 @@
       {
         "status": "rejected",
         "reason": "not cointegrated (p-value 0.146 >= 0.05)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.146 >= 0.05)"
       }
     ]
   },
@@ -262,12 +292,7 @@
     "created_at": "2026-08-28T02:14:16.875161+00:00",
     "id": "fa4b80a9c6914667a8c8e722c0e24b4d",
     "status": "rejected",
-    "metrics": {
-      "sharpe_ratio": 0.8857986677077316,
-      "max_drawdown_pct": 0.0005538823448388564,
-      "profit_factor": 4.029530761460418,
-      "net_return_nzd": -2336.2467480020364
-    },
+    "metrics": null,
     "history": [
       {
         "status": "candidate",
@@ -284,6 +309,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.89 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: added a min_trades gate (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }

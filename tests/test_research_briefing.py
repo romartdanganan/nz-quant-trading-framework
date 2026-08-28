@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from quant_engine.screeners import research_briefing as rb
-from quant_engine.screeners.earnings_calendar import UpcomingEarnings
+from quant_engine.screeners.earnings_calendar import RecentEarnings, UpcomingEarnings
 from quant_engine.screeners.fundamental_screener import FundamentalDataUnavailable, FundamentalMetrics
 
 
@@ -27,6 +27,10 @@ def test_build_briefing_combines_all_sources(monkeypatch):
         rb, "get_upcoming_earnings",
         lambda ticker, within_days=14: UpcomingEarnings(ticker, date(2026, 9, 1), 1.5, 4),
     )
+    monkeypatch.setattr(
+        rb, "get_last_earnings",
+        lambda ticker: RecentEarnings(ticker, date(2026, 7, 1), 1.4, 1.6, 14.3, 58),
+    )
 
     briefing = rb.build_briefing("AAPL", fx_converter=FakeFX())
 
@@ -35,6 +39,8 @@ def test_build_briefing_combines_all_sources(monkeypatch):
     assert briefing.price_nzd == pytest.approx(160.0)
     assert briefing.sentiment_score == 0.5
     assert briefing.upcoming_earnings.days_until == 4
+    assert briefing.last_earnings.reported_eps == pytest.approx(1.6)
+    assert briefing.last_earnings.days_since == 58
     assert len(briefing.headlines) == 1
     assert briefing.headlines[0].tags == ["earnings_beat"]
 
@@ -47,12 +53,14 @@ def test_build_briefing_handles_missing_fundamentals(monkeypatch):
     monkeypatch.setattr(rb, "fetch_headlines", lambda ticker, limit=10: [])
     monkeypatch.setattr(rb, "score_headlines", lambda headlines: 0.0)
     monkeypatch.setattr(rb, "get_upcoming_earnings", lambda ticker, within_days=14: None)
+    monkeypatch.setattr(rb, "get_last_earnings", lambda ticker: None)
 
     briefing = rb.build_briefing("BADTICKER", fx_converter=FakeFX())
 
     assert briefing.fundamentals is None
     assert briefing.price_nzd is None
     assert briefing.upcoming_earnings is None
+    assert briefing.last_earnings is None
     assert briefing.headlines == []
 
 
@@ -61,6 +69,7 @@ def test_scan_watchlist_builds_one_briefing_per_ticker(monkeypatch):
     monkeypatch.setattr(rb, "fetch_headlines", lambda ticker, limit=10: [])
     monkeypatch.setattr(rb, "score_headlines", lambda headlines: 0.0)
     monkeypatch.setattr(rb, "get_upcoming_earnings", lambda ticker, within_days=14: None)
+    monkeypatch.setattr(rb, "get_last_earnings", lambda ticker: None)
 
     briefings = rb.scan_watchlist(["AAPL", "MSFT"], fx_converter=FakeFX())
 
