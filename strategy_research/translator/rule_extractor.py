@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from strategy_research.strategy_spec import (
+    Archetype,
     Condition,
     Indicator,
     Operator,
@@ -39,17 +40,39 @@ def extract(text: str, source_url: str, name_hint: str = "") -> ExtractionResult
     if archetype is None or not conditions:
         return ExtractionResult(spec=None, confidence=0.0)
 
-    confidence = min(1.0, 0.25 * keyword_score + 0.25 * len(conditions))
+    if archetype == Archetype.PAIRS_TRADING:
+        # A StrategySpec structurally cannot represent pairs trading (needs two tickers,
+        # a hedge ratio, a spread — see CLAUDE.md's "Pairs trading" section) and this free
+        # extractor has no logic to identify any of that from unstructured text. Reject
+        # rather than mislabel a single-ticker spec with a pairs_trading archetype (a real
+        # bug found 2026-08-28: it was building one anyway, e.g. tagging an arbitrary
+        # ATR condition as "pairs_trading").
+        return ExtractionResult(spec=None, confidence=0.0)
+
+    # Need at least two DISTINCT conditions to form a coherent entry+exit rule — a single
+    # detected condition (or two identical ones matched at different text positions, e.g.
+    # the same "RSI > 70" phrase appearing twice) can't represent both a buy and a sell
+    # signal. A real bug found 2026-08-28: the old fallback duplicated one condition into
+    # both entry AND exit when fewer than two were found, silently fabricating a degenerate
+    # strategy (entry == exit, which can never hold a position sensibly) instead of
+    # rejecting ambiguous input — violating CLAUDE.md's "reject rather than guess"
+    # principle. dict.fromkeys() dedupes while preserving text order (Condition is a frozen,
+    # hashable dataclass).
+    distinct_conditions = list(dict.fromkeys(conditions))
+    if len(distinct_conditions) < 2:
+        return ExtractionResult(spec=None, confidence=0.0)
+
+    confidence = min(1.0, 0.25 * keyword_score + 0.25 * len(distinct_conditions))
     if confidence < MIN_CONFIDENCE:
         return ExtractionResult(spec=None, confidence=confidence)
 
-    # Known limitation: entry is simply "the first condition found in the text", exit "the
-    # second" — this doesn't group multiple ANDed conditions into one side (e.g. a
+    # Known limitation: entry is simply "the first distinct condition found in the text",
+    # exit "the second" — this doesn't group multiple ANDed conditions into one side (e.g. a
     # breakout's channel-high entry plus its volume-confirmation condition). See
     # strategies/breakout/strategy.py's classic_channel_breakout() for the fuller,
     # hand-designed AND'd form this simple heuristic can't produce on its own.
-    entry_conditions = [conditions[0]]
-    exit_conditions = [conditions[1]] if len(conditions) > 1 else [conditions[0]]
+    entry_conditions = [distinct_conditions[0]]
+    exit_conditions = [distinct_conditions[1]]
 
     spec = StrategySpec(
         name=name_hint or f"{archetype.value}_{abs(hash(source_url)) % 10_000}",

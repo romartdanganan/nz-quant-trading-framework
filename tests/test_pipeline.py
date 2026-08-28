@@ -77,6 +77,24 @@ def test_source_skipped_for_exceeding_gemini_budget_gets_a_fair_shot_next_run(tm
     assert second["sources_new"] == 1  # not silently blacklisted by the earlier budget cap
 
 
+def test_same_url_matched_by_multiple_queries_is_only_processed_once(tmp_path, monkeypatch):
+    # A real bug found 2026-08-28: SEARCH_QUERIES has multiple terms, so the same repo can
+    # be returned by two different queries as two separate RawSource objects with the same
+    # URL. collect_raw_sources() doesn't dedupe internally, so without a fix this created
+    # two registry candidates from one source in a single run.
+    source_a = RawSource(text=MOMENTUM_TEXT, url="https://example.com/dup", title="idea")
+    source_b = RawSource(text=MOMENTUM_TEXT, url="https://example.com/dup", title="idea (matched again)")
+    monkeypatch.setattr(pipeline, "collect_raw_sources", lambda max_sources: [source_a, source_b])
+    _patch_config(monkeypatch, tmp_path)
+
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    summary = pipeline.run(registry=registry)
+
+    assert summary["sources_new"] == 1
+    assert summary["candidates_accepted"] == 1
+    assert len(registry.list(status="candidate")) == 1
+
+
 def test_source_gemini_evaluated_and_rejected_is_not_reprocessed_next_run(tmp_path, monkeypatch):
     # Contrast with the above: a source that DID get a real Gemini response (even if it
     # yielded zero usable candidates) was genuinely evaluated and should be remembered,

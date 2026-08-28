@@ -81,7 +81,14 @@ def run(registry: StrategyRegistry | None = None) -> dict:
     seen = _load_seen(cache_path) | registry.seen_source_urls()
 
     raw_sources = collect_raw_sources(max_sources)
-    new_sources = [source for source in raw_sources if source.url and source.url not in seen]
+    # dict.fromkeys(..., source) dedupes by URL (keeping the first occurrence) while
+    # preserving order — different SEARCH_QUERIES terms can each independently match the
+    # same repo/post/paper, so raw_sources itself can contain the same URL more than once;
+    # without this, a single source could be extracted and added to the registry twice in
+    # one run (a real bug found 2026-08-28: XanderRobbins/Universal-Pairs-Trading-System was
+    # matched by two different queries and registered as two separate candidates).
+    deduped_by_url = {source.url: source for source in raw_sources if source.url}
+    new_sources = [source for source in deduped_by_url.values() if source.url not in seen]
 
     accepted = rejected = skipped = gemini_calls_used = 0
 
