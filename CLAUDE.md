@@ -266,6 +266,10 @@ per strategy. The registry was reset and re-validated with the corrected code �
   `CHANNEL_HIGH`/`CHANNEL_LOW`. `strategies/mean_reversion/strategy.py`'s
   `classic_bollinger_reversion()` uses this (John Bollinger's own standard 20-period/2-std
   construction). The Gemini distiller prompt was updated to request the disambiguated form.
+  `KELTNER_UPPER`/`KELTNER_LOWER` (EMA +/- ATR-multiple, the volatility-adjusted cousin of
+  a Bollinger band) followed the same pattern —
+  `strategies/breakout/strategy.py`'s `classic_keltner_breakout()` uses the standard
+  20-period/2x-ATR construction.
 - No stop-loss or position sizing is modeled in the Phase 4 backtest (that's
   `risk_management/`, Phase 7) — a full position is bought/sold on signal only. This means
   `validated` status reflects the raw strategy edge, not the edge with real risk controls

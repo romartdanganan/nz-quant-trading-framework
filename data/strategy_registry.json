@@ -452,5 +452,45 @@
         "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
+  },
+  {
+    "kind": "single",
+    "name": "classic_keltner_breakout_20",
+    "archetype": "breakout",
+    "entry_conditions": [
+      {
+        "indicator": "KELTNER_UPPER",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": 20
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "KELTNER_LOWER",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": 20
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://strategies/breakout/classic_keltner_breakout",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "Classic Keltner Channel(20, 2x ATR) breakout: buy when close crosses above the upper channel, exit when it crosses below the lower channel (hand-designed reference strategy).",
+    "created_at": "2026-08-28T09:32:49.305659+00:00",
+    "id": "dfa3714c47ab4a1b9c08ead0133cfdf2",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
   }
 ]

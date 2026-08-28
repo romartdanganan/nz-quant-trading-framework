@@ -159,6 +159,42 @@ def test_bollinger_upper_crosses_above_detects_a_real_spike():
     assert not signals["exit_signal"].iloc[:23].any()
 
 
+def test_keltner_upper_crosses_above_detects_a_real_spike():
+    dates = pd.date_range("2023-01-01", periods=25, freq="D")
+    close = pd.Series([100.0] * 20 + [100, 100, 100, 130, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close + 1, "low": close - 1, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.KELTNER_UPPER, Operator.CROSSES_ABOVE, 0.0, period=20)],
+        exit_=[Condition(Indicator.KELTNER_LOWER, Operator.CROSSES_BELOW, 0.0, period=20)],
+        archetype=Archetype.BREAKOUT,
+    )
+
+    signals = generate_signals(spec, df)
+
+    assert signals["entry_signal"].iloc[23] == True  # noqa: E712
+    assert not signals["entry_signal"].iloc[:23].any()
+
+
+def test_keltner_lower_crosses_below_detects_a_real_dip():
+    dates = pd.date_range("2023-01-01", periods=25, freq="D")
+    close = pd.Series([100.0] * 20 + [100, 100, 100, 70, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close + 1, "low": close - 1, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.KELTNER_UPPER, Operator.CROSSES_ABOVE, 0.0, period=20)],
+        exit_=[Condition(Indicator.KELTNER_LOWER, Operator.CROSSES_BELOW, 0.0, period=20)],
+        archetype=Archetype.BREAKOUT,
+    )
+
+    signals = generate_signals(spec, df)
+
+    assert signals["exit_signal"].iloc[23] == True  # noqa: E712
+    assert not signals["exit_signal"].iloc[:23].any()
+
+
 def test_channel_high_breakout_detects_close_crossing_rolling_high():
     dates = pd.date_range("2023-01-01", periods=10, freq="D")
     close = pd.Series([100, 100, 100, 100, 100, 100, 100, 100, 150, 100], index=dates)

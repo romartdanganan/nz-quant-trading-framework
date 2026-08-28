@@ -7,7 +7,7 @@ config.yaml's watchlists.pairs_trading list.
 from __future__ import annotations
 
 from config.settings import settings
-from strategies.breakout.strategy import classic_channel_breakout
+from strategies.breakout.strategy import classic_channel_breakout, classic_keltner_breakout
 from strategies.mean_reversion.strategy import (
     classic_bollinger_reversion,
     classic_rsi2_reversion,
@@ -25,6 +25,7 @@ def classic_single_ticker_strategies() -> list:
         classic_macd_momentum(),
         classic_channel_breakout(),
         classic_bollinger_reversion(),
+        classic_keltner_breakout(),
     ]
 
 

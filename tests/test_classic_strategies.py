@@ -1,4 +1,4 @@
-from strategies.breakout.strategy import classic_channel_breakout
+from strategies.breakout.strategy import classic_channel_breakout, classic_keltner_breakout
 from strategies.mean_reversion.strategy import (
     classic_bollinger_reversion,
     classic_rsi2_reversion,
@@ -55,3 +55,12 @@ def test_classic_bollinger_reversion_is_valid():
     assert spec.archetype == Archetype.MEAN_REVERSION
     assert spec.entry_conditions[0].indicator == Indicator.BOLLINGER_LOWER
     assert spec.exit_conditions[0].indicator == Indicator.BOLLINGER_UPPER
+
+
+def test_classic_keltner_breakout_is_valid_and_has_distinct_source_url():
+    spec = classic_keltner_breakout()
+    spec.validate()
+    assert spec.archetype == Archetype.BREAKOUT
+    assert spec.entry_conditions[0].indicator == Indicator.KELTNER_UPPER
+    assert spec.exit_conditions[0].indicator == Indicator.KELTNER_LOWER
+    assert spec.source_url != classic_channel_breakout().source_url

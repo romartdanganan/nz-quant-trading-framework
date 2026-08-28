@@ -32,6 +32,8 @@ class Indicator(str, Enum):
     VOLUME = "VOLUME"
     CHANNEL_HIGH = "CHANNEL_HIGH"  # rolling N-day high — the classic breakout signal
     CHANNEL_LOW = "CHANNEL_LOW"    # rolling N-day low — breakdown / trailing exit
+    KELTNER_UPPER = "KELTNER_UPPER"  # EMA + ATR*multiplier — volatility-adjusted breakout line
+    KELTNER_LOWER = "KELTNER_LOWER"  # EMA - ATR*multiplier — volatility-adjusted breakdown line
 
 
 class Operator(str, Enum):
@@ -46,9 +48,9 @@ class Operator(str, Enum):
 CROSSOVER_OPERATORS = (Operator.CROSSES_ABOVE, Operator.CROSSES_BELOW)
 
 # Sanity ranges for threshold-style conditions. Indicators not listed here (crossover-style:
-# MACD, VWAP, BOLLINGER_BANDS, BOLLINGER_UPPER, BOLLINGER_LOWER, CHANNEL_HIGH, CHANNEL_LOW)
-# aren't range-checked since their conditions carry a sentinel threshold rather than a
-# meaningful number.
+# MACD, VWAP, BOLLINGER_BANDS, BOLLINGER_UPPER, BOLLINGER_LOWER, CHANNEL_HIGH, CHANNEL_LOW,
+# KELTNER_UPPER, KELTNER_LOWER) aren't range-checked since their conditions carry a sentinel
+# threshold rather than a meaningful number.
 INDICATOR_RANGES: dict[Indicator, tuple[float, float]] = {
     Indicator.RSI: (0.0, 100.0),
     Indicator.ZSCORE: (-10.0, 10.0),

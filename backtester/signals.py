@@ -10,6 +10,8 @@ UnsupportedIndicatorError and reject the strategy (see quant_engine/validation).
 BOLLINGER_UPPER/BOLLINGER_LOWER are the disambiguated, actually-supported form: each names
 one specific band line, evaluated the same way CHANNEL_HIGH/CHANNEL_LOW compare close
 against a computed line (a crossover, not a fixed numeric threshold).
+KELTNER_UPPER/KELTNER_LOWER follow the same pattern using ATR instead of standard
+deviation for the band width — a genuinely different volatility measure from Bollinger.
 """
 from __future__ import annotations
 
@@ -26,6 +28,8 @@ MA_PERIOD = 20
 CHANNEL_PERIOD = 20
 BOLLINGER_PERIOD = 20
 BOLLINGER_STD = 2.0  # John Bollinger's own standard default; not tuned per-strategy
+KELTNER_PERIOD = 20
+KELTNER_MULTIPLIER = 2.0  # standard convention; not tuned per-strategy
 
 CROSSOVER_OPERATORS = (Operator.CROSSES_ABOVE, Operator.CROSSES_BELOW)
 
@@ -61,6 +65,8 @@ def _evaluate_condition(condition: Condition, df: pd.DataFrame) -> pd.Series:
         return _evaluate_channel(condition, df)
     if condition.indicator in (Indicator.BOLLINGER_UPPER, Indicator.BOLLINGER_LOWER):
         return _evaluate_bollinger(condition, df)
+    if condition.indicator in (Indicator.KELTNER_UPPER, Indicator.KELTNER_LOWER):
+        return _evaluate_keltner(condition, df)
     if condition.indicator == Indicator.BOLLINGER_BANDS:
         raise UnsupportedIndicatorError(
             "BOLLINGER_BANDS conditions are not supported by the backtest engine (ambiguous "
@@ -118,6 +124,21 @@ def _evaluate_bollinger(condition: Condition, df: pd.DataFrame) -> pd.Series:
     period = condition.period or BOLLINGER_PERIOD
     bands = ta.bbands(df["close"], length=period, std=BOLLINGER_STD)
     band_line = bands.iloc[:, 0] if condition.indicator == Indicator.BOLLINGER_LOWER else bands.iloc[:, 2]
+
+    if condition.operator in CROSSOVER_OPERATORS:
+        return _crosses_lines(df["close"], band_line, condition.operator)
+    return _compare(band_line, condition.operator, condition.threshold)
+
+
+def _evaluate_keltner(condition: Condition, df: pd.DataFrame) -> pd.Series:
+    """KELTNER_UPPER/KELTNER_LOWER: EMA +/- ATR*multiplier, the volatility-adjusted cousin of
+    a Bollinger band (uses ATR instead of standard deviation) — same close-crosses-the-line
+    pattern as _evaluate_bollinger/_evaluate_channel. pandas-ta's kc() column order is fixed
+    (lower, basis, upper), so select by position rather than by name.
+    """
+    period = condition.period or KELTNER_PERIOD
+    bands = ta.kc(df["high"], df["low"], df["close"], length=period, scalar=KELTNER_MULTIPLIER)
+    band_line = bands.iloc[:, 0] if condition.indicator == Indicator.KELTNER_LOWER else bands.iloc[:, 2]
 
     if condition.operator in CROSSOVER_OPERATORS:
         return _crosses_lines(df["close"], band_line, condition.operator)
