@@ -18,6 +18,7 @@ MENU = """
   [4] Run Incubation Cycle (paper trading forward-test)
   [5] Research Briefing (news, earnings, fundamentals — for manual decisions)
   [6] Generate Dashboard (visual status of all strategies)
+  [7] Discover Small/Mid-Cap Opportunities (real screener, not just mega-caps)
   [0] Exit
 """
 
@@ -141,6 +142,35 @@ def run_research_briefing() -> None:
     )
 
 
+def discover_opportunities() -> None:
+    from quant_engine.screeners.opportunity_finder import discover_candidate_tickers, find_opportunities
+
+    console.print("[cyan]Pulling small/mid-cap candidates from Yahoo Finance's real screener queries...[/cyan]")
+    tickers = discover_candidate_tickers()
+    console.print(f"[cyan]{len(tickers)} candidates found, scoring on fundamentals + sentiment...[/cyan]")
+    entries = find_opportunities()
+
+    table = Table(title="Small/Mid-Cap Opportunities — for review only, not auto-traded")
+    for column in ["Ticker", "Fund. Score", "Sentiment", "Entry", "Stop", "Target"]:
+        table.add_column(column)
+    for entry in entries:
+        table.add_row(
+            entry.ticker,
+            f"{entry.fundamental_score:.0f}",
+            f"{entry.sentiment_label} ({entry.sentiment_score:+.2f})",
+            f"{entry.entry_price:.2f}",
+            f"{entry.stop_loss:.2f}",
+            f"{entry.target_price:.2f}",
+        )
+    console.print(table)
+    console.print(
+        "[yellow]Ranked purely by the documented fundamental-score formula (P/E, PEG, D/E, "
+        "revenue growth, earnings surprise) + sentiment — not a recommendation. These are "
+        "smaller, less-covered companies: verify the actual business and read recent "
+        "filings/news yourself before considering any of them.[/yellow]"
+    )
+
+
 def generate_dashboard() -> None:
     from dashboard.generator import generate_dashboard as build_dashboard
 
@@ -156,6 +186,7 @@ ACTIONS = {
     "4": launch_paper_trading,
     "5": run_research_briefing,
     "6": generate_dashboard,
+    "7": discover_opportunities,
 }
 
 

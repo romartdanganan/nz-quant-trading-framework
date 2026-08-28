@@ -62,6 +62,9 @@ reports/*.html
 .DS_Store
 Thumbs.db
 
+# --- Claude Code local state ---
+.claude/
+
 # --- IB Gateway / TWS local state ---
 ibgateway/
 tws_settings/
