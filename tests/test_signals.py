@@ -124,6 +124,41 @@ def test_bollinger_bands_condition_raises_unsupported():
         generate_signals(spec, df)
 
 
+def test_bollinger_lower_crosses_below_detects_a_real_dip():
+    dates = pd.date_range("2023-01-01", periods=25, freq="D")
+    close = pd.Series([100.0] * 20 + [100, 100, 100, 70, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.BOLLINGER_LOWER, Operator.CROSSES_BELOW, 0.0, period=20)],
+        exit_=[Condition(Indicator.BOLLINGER_UPPER, Operator.CROSSES_ABOVE, 0.0, period=20)],
+    )
+
+    signals = generate_signals(spec, df)
+
+    # index 23 is the bar where close plunges to 70, well outside a flat-100 band
+    assert signals["entry_signal"].iloc[23] == True  # noqa: E712 - explicit bool check on a numpy bool
+    assert not signals["entry_signal"].iloc[:23].any()
+
+
+def test_bollinger_upper_crosses_above_detects_a_real_spike():
+    dates = pd.date_range("2023-01-01", periods=25, freq="D")
+    close = pd.Series([100.0] * 20 + [100, 100, 100, 130, 100], index=dates)
+    df = pd.DataFrame(
+        {"open": close, "high": close, "low": close, "close": close, "volume": 1000}, index=dates
+    )
+    spec = make_spec(
+        entry=[Condition(Indicator.BOLLINGER_LOWER, Operator.CROSSES_BELOW, 0.0, period=20)],
+        exit_=[Condition(Indicator.BOLLINGER_UPPER, Operator.CROSSES_ABOVE, 0.0, period=20)],
+    )
+
+    signals = generate_signals(spec, df)
+
+    assert signals["exit_signal"].iloc[23] == True  # noqa: E712
+    assert not signals["exit_signal"].iloc[:23].any()
+
+
 def test_channel_high_breakout_detects_close_crossing_rolling_high():
     dates = pd.date_range("2023-01-01", periods=10, freq="D")
     close = pd.Series([100, 100, 100, 100, 100, 100, 100, 100, 150, 100], index=dates)

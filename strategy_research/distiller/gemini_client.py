@@ -25,13 +25,17 @@ fences):
 [{{
   "name": "short strategy name",
   "archetype": "mean_reversion" | "momentum" | "pairs_trading" | "breakout",
-  "entry_conditions": [{{"indicator": "RSI"|"MACD"|"BOLLINGER_BANDS"|"ATR"|"VWAP"|"ZSCORE"|"SMA"|"EMA"|"VOLUME",
+  "entry_conditions": [{{"indicator": "RSI"|"MACD"|"BOLLINGER_UPPER"|"BOLLINGER_LOWER"|"ATR"|"VWAP"|"ZSCORE"|"SMA"|"EMA"|"VOLUME",
                           "operator": "<"|">"|"<="|">="|"crosses_above"|"crosses_below",
                           "threshold": number}}],
   "exit_conditions": [ ...same shape as entry_conditions... ],
   "timeframe": "e.g. 1m, 5m, 1d",
   "confidence": number between 0 and 1
 }}]
+
+For Bollinger Band rules, use BOLLINGER_LOWER for "price near/below the lower band"
+(mean-reversion entries) and BOLLINGER_UPPER for "price near/above the upper band"
+(mean-reversion exits, breakout entries) - there is no generic "BOLLINGER_BANDS" indicator.
 
 If nothing in the text maps to a concrete, testable trading rule, return [].
 

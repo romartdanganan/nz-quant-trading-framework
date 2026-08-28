@@ -1,5 +1,9 @@
 from strategies.breakout.strategy import classic_channel_breakout
-from strategies.mean_reversion.strategy import classic_rsi_reversion
+from strategies.mean_reversion.strategy import (
+    classic_bollinger_reversion,
+    classic_rsi2_reversion,
+    classic_rsi_reversion,
+)
 from strategies.momentum.strategy import classic_macd_momentum
 from strategy_research.strategy_spec import Archetype, Indicator
 
@@ -32,3 +36,22 @@ def test_classic_strategies_have_stable_internal_source_urls():
     # source_url doubles as the registry dedup key — must not depend on parameters that
     # might vary between calls, or re-seeding would create duplicates.
     assert classic_rsi_reversion(period=21).source_url == classic_rsi_reversion(period=14).source_url
+
+
+def test_classic_rsi2_reversion_is_valid_and_distinct_from_classic_rsi_reversion():
+    spec = classic_rsi2_reversion()
+    spec.validate()
+    assert spec.archetype == Archetype.MEAN_REVERSION
+    assert spec.entry_conditions[0].indicator == Indicator.RSI
+    assert spec.entry_conditions[0].period == 2
+    # must not collide with classic_rsi_reversion's source_url, or the registry's dedup
+    # would silently drop one of these two candidates.
+    assert spec.source_url != classic_rsi_reversion().source_url
+
+
+def test_classic_bollinger_reversion_is_valid():
+    spec = classic_bollinger_reversion()
+    spec.validate()
+    assert spec.archetype == Archetype.MEAN_REVERSION
+    assert spec.entry_conditions[0].indicator == Indicator.BOLLINGER_LOWER
+    assert spec.exit_conditions[0].indicator == Indicator.BOLLINGER_UPPER

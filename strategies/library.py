@@ -8,14 +8,24 @@ from __future__ import annotations
 
 from config.settings import settings
 from strategies.breakout.strategy import classic_channel_breakout
-from strategies.mean_reversion.strategy import classic_rsi_reversion
+from strategies.mean_reversion.strategy import (
+    classic_bollinger_reversion,
+    classic_rsi2_reversion,
+    classic_rsi_reversion,
+)
 from strategies.momentum.strategy import classic_macd_momentum
 from strategies.pairs_trading.strategy import build_pairs_spec
 from strategy_research.registry import StrategyRegistry
 
 
 def classic_single_ticker_strategies() -> list:
-    return [classic_rsi_reversion(), classic_macd_momentum(), classic_channel_breakout()]
+    return [
+        classic_rsi_reversion(),
+        classic_rsi2_reversion(),
+        classic_macd_momentum(),
+        classic_channel_breakout(),
+        classic_bollinger_reversion(),
+    ]
 
 
 def classic_pairs_strategies() -> list:

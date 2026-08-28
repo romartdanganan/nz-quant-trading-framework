@@ -258,9 +258,14 @@ per strategy. The registry was reset and re-validated with the corrected code �
   the non-standard `Infinity` literal, which breaks in any strict JSON consumer. It now
   returns `UNCAPPED_PROFIT_FACTOR` (999.0) instead — a documented cap, not a silent
   truncation; the pass/fail threshold comparison is unaffected either way.
-- `backtester/signals.py` rejects `BOLLINGER_BANDS` conditions outright
-  (`UnsupportedIndicatorError`) rather than guessing which band edge a single threshold
-  means — a strategy using it is rejected at the backtest stage, not mis-evaluated.
+- **Fixed**: the generic `BOLLINGER_BANDS` tag is still rejected outright
+  (`UnsupportedIndicatorError`, since a single threshold can't disambiguate which band edge
+  it means), but `backtester/signals.py` now supports the disambiguated
+  `BOLLINGER_UPPER`/`BOLLINGER_LOWER` indicators — each names one specific band line and is
+  evaluated as a close-crosses-the-line condition, the same pattern as
+  `CHANNEL_HIGH`/`CHANNEL_LOW`. `strategies/mean_reversion/strategy.py`'s
+  `classic_bollinger_reversion()` uses this (John Bollinger's own standard 20-period/2-std
+  construction). The Gemini distiller prompt was updated to request the disambiguated form.
 - No stop-loss or position sizing is modeled in the Phase 4 backtest (that's
   `risk_management/`, Phase 7) — a full position is bought/sold on signal only. This means
   `validated` status reflects the raw strategy edge, not the edge with real risk controls

@@ -19,7 +19,11 @@ class Archetype(str, Enum):
 class Indicator(str, Enum):
     RSI = "RSI"
     MACD = "MACD"
-    BOLLINGER_BANDS = "BOLLINGER_BANDS"
+    BOLLINGER_BANDS = "BOLLINGER_BANDS"  # ambiguous generic tag — deliberately unsupported,
+    # kept only to reject legacy/extracted candidates that used it; see BOLLINGER_UPPER/
+    # BOLLINGER_LOWER below for the disambiguated, actually-supported form.
+    BOLLINGER_UPPER = "BOLLINGER_UPPER"  # close crossing the upper band — mean-reversion exit / breakout entry
+    BOLLINGER_LOWER = "BOLLINGER_LOWER"  # close crossing the lower band — mean-reversion entry
     ATR = "ATR"
     VWAP = "VWAP"
     ZSCORE = "ZSCORE"
@@ -42,8 +46,9 @@ class Operator(str, Enum):
 CROSSOVER_OPERATORS = (Operator.CROSSES_ABOVE, Operator.CROSSES_BELOW)
 
 # Sanity ranges for threshold-style conditions. Indicators not listed here (crossover-style:
-# MACD, VWAP, BOLLINGER_BANDS) aren't range-checked since their conditions carry a sentinel
-# threshold rather than a meaningful number.
+# MACD, VWAP, BOLLINGER_BANDS, BOLLINGER_UPPER, BOLLINGER_LOWER, CHANNEL_HIGH, CHANNEL_LOW)
+# aren't range-checked since their conditions carry a sentinel threshold rather than a
+# meaningful number.
 INDICATOR_RANGES: dict[Indicator, tuple[float, float]] = {
     Indicator.RSI: (0.0, 100.0),
     Indicator.ZSCORE: (-10.0, 10.0),

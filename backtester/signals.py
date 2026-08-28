@@ -3,10 +3,13 @@ data, using pandas-ta for standard indicators and hand-rolled pandas for VWAP/z-
 channel-high-low (pandas-ta doesn't provide these in the form our vocabulary needs). Pure
 pandas, no backtrader dependency — independently testable from engine.py.
 
-BOLLINGER_BANDS conditions are rejected rather than guessed at: the schema only carries a
-single threshold, which doesn't disambiguate "distance from upper band" vs "from lower
-band" vs "band width" — per CLAUDE.md's "reject rather than guess" principle, callers must
-catch UnsupportedIndicatorError and reject the strategy (see quant_engine/validation).
+The generic BOLLINGER_BANDS tag is rejected rather than guessed at: a single threshold
+doesn't disambiguate "distance from upper band" vs "from lower band" vs "band width" — per
+CLAUDE.md's "reject rather than guess" principle, callers must catch
+UnsupportedIndicatorError and reject the strategy (see quant_engine/validation).
+BOLLINGER_UPPER/BOLLINGER_LOWER are the disambiguated, actually-supported form: each names
+one specific band line, evaluated the same way CHANNEL_HIGH/CHANNEL_LOW compare close
+against a computed line (a crossover, not a fixed numeric threshold).
 """
 from __future__ import annotations
 
@@ -21,6 +24,8 @@ VOLUME_AVG_PERIOD = 20
 ZSCORE_PERIOD = 20
 MA_PERIOD = 20
 CHANNEL_PERIOD = 20
+BOLLINGER_PERIOD = 20
+BOLLINGER_STD = 2.0  # John Bollinger's own standard default; not tuned per-strategy
 
 CROSSOVER_OPERATORS = (Operator.CROSSES_ABOVE, Operator.CROSSES_BELOW)
 
@@ -54,10 +59,12 @@ def _evaluate_condition(condition: Condition, df: pd.DataFrame) -> pd.Series:
         return _evaluate_vwap(condition, df)
     if condition.indicator in (Indicator.CHANNEL_HIGH, Indicator.CHANNEL_LOW):
         return _evaluate_channel(condition, df)
+    if condition.indicator in (Indicator.BOLLINGER_UPPER, Indicator.BOLLINGER_LOWER):
+        return _evaluate_bollinger(condition, df)
     if condition.indicator == Indicator.BOLLINGER_BANDS:
         raise UnsupportedIndicatorError(
-            "BOLLINGER_BANDS conditions are not supported by the backtest engine "
-            "(ambiguous band edge — see module docstring)"
+            "BOLLINGER_BANDS conditions are not supported by the backtest engine (ambiguous "
+            "band edge — use BOLLINGER_UPPER/BOLLINGER_LOWER instead, see module docstring)"
         )
 
     value_line = _get_value_line(condition.indicator, df, condition.period)
@@ -100,6 +107,21 @@ def _evaluate_channel(condition: Condition, df: pd.DataFrame) -> pd.Series:
     if condition.operator in CROSSOVER_OPERATORS:
         return _crosses_lines(df["close"], channel_line, condition.operator)
     return _compare(channel_line, condition.operator, condition.threshold)
+
+
+def _evaluate_bollinger(condition: Condition, df: pd.DataFrame) -> pd.Series:
+    """BOLLINGER_UPPER/BOLLINGER_LOWER: close crossing a specific band line, the same
+    crossover-vs-computed-line pattern as _evaluate_channel. pandas-ta's bbands() column
+    order is fixed (lower, mid, upper, bandwidth, %b), so select by position rather than by
+    name to avoid coupling to its exact naming scheme across versions.
+    """
+    period = condition.period or BOLLINGER_PERIOD
+    bands = ta.bbands(df["close"], length=period, std=BOLLINGER_STD)
+    band_line = bands.iloc[:, 0] if condition.indicator == Indicator.BOLLINGER_LOWER else bands.iloc[:, 2]
+
+    if condition.operator in CROSSOVER_OPERATORS:
+        return _crosses_lines(df["close"], band_line, condition.operator)
+    return _compare(band_line, condition.operator, condition.threshold)
 
 
 def _evaluate_macd(condition: Condition, df: pd.DataFrame) -> pd.Series:
