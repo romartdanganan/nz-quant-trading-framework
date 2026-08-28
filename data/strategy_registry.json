@@ -520,12 +520,16 @@
     "raw_excerpt": "PatrickSebastine/mean-reversion-trading-bot: Modular Python crypto trading bot: mean-reversion (Bollinger + RSI) and momentum (EMA + volume) strategies across 100+ exchanges via CCXT, with realistic backtesting (fees + slippage), risk controls, and paper trading.\n\n# Mean Reversio",
     "created_at": "2026-08-28T10:20:28.231139+00:00",
     "id": "6c0e00920e6f4000a5b3b7fe2bad643b",
-    "status": "candidate",
+    "status": "rejected",
     "metrics": null,
     "history": [
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -556,12 +560,16 @@
     "raw_excerpt": "jason-ie/trading-strategy: A quantitative long/short equity strategy built from scratch in Python, utilizing RSI, ATR, Mean Reversion, and Ichimoku Cloud. Validated through a rolling walk-forward backtest. Built particularly for high growth equities, not meant for low beta stocks",
     "created_at": "2026-08-28T10:20:28.232156+00:00",
     "id": "7ed9f15d383d4a039506ea4778c3afa8",
-    "status": "candidate",
+    "status": "rejected",
     "metrics": null,
     "history": [
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -592,12 +600,16 @@
     "raw_excerpt": "Simobennani05/algo-trading: This project implements a trading strategy using Bollinger Bands, Keltner Channels, and the Relative Strength Index (RSI) to identify buy and sell signals for AAPL stock. It includes backtesting and compares the strategy's profitability against the SPY",
     "created_at": "2026-08-28T10:20:28.237141+00:00",
     "id": "1325240ef0d5461688873a29c5c46449",
-    "status": "candidate",
+    "status": "rejected",
     "metrics": null,
     "history": [
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }
