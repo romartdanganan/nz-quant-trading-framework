@@ -17,7 +17,8 @@ def _fake_backtest_result() -> PairsBacktestResult:
 def _patch_common(monkeypatch, p_value, metrics: Metrics):
     monkeypatch.setattr(pairs_validator, "check_cointegration", lambda a, b: p_value)
     monkeypatch.setattr(pairs_validator, "run_pairs_backtest", lambda spec, a, b: _fake_backtest_result())
-    monkeypatch.setattr(pairs_validator, "apply_nz_costs", lambda equity, **kwargs: equity)
+    monkeypatch.setattr(pairs_validator, "prepare_metrics_curve", lambda equity, *a, **kwargs: equity)
+    monkeypatch.setattr(pairs_validator, "net_return_nzd", lambda *a, **kwargs: 0.0)
     monkeypatch.setattr(pairs_validator, "compute_metrics", lambda equity, trades: metrics)
 
 

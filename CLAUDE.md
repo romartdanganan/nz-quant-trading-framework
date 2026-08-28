@@ -56,7 +56,7 @@ backtester/
   data_loader.py       # Phase 4 — yfinance OHLCV, cached to data/historical/
   signals.py           # Phase 4/6 — pure-pandas entry/exit boolean signals from a StrategySpec
   engine.py            # Phase 4 — backtrader Cerebro execution simulation over those signals
-  nz_adjustments.py    # Phase 4 — bridges an equity curve through nz_tax_fx/ for net-of-cost metrics
+  nz_adjustments.py    # Phase 4 — bridges an equity curve through nz_tax_fx/; see "NZ tax & FX validation methodology" below for why tax is NOT baked into the Sharpe/MaxDD curve
   pairs_engine.py       # Phase 6 — direct spread P&L simulation for PairsSpec (not backtrader — see below)
 execution_ibkr/
   ibkr_connector.py    # Phase 7 — ib_insync bracket orders; needs TWS/Gateway, unverified beyond mocks
@@ -154,6 +154,11 @@ verifies" principle as trading signals (see Human-in-the-loop execution below).
 - Where a choice exists, take the **lower** of FDR/CV tax liability (`fif_method: auto` in
   `config.yaml`) — but note some structures (e.g. attributing interests held at a loss) have
   restrictions on which method is selectable. Flag this rather than silently assuming.
+- **FDR/CV compute assessable *income*, not the tax itself** — that income is then taxed at
+  the investor's own marginal income tax rate (`nz_tax.marginal_tax_rate` in config.yaml,
+  default 0.33), exactly like any other income. Treating assessable income as if it were
+  the tax owed (an implicit 100% rate) was a real bug found and fixed on 2026-08-28 — see
+  "NZ tax & FX validation methodology" below for the full story.
 - **NZ tax year**: 1 April – 31 March (`tax_year_end: "03-31"` in config.yaml), not calendar year.
 - **FX conversion**: all P&L, cost basis, and thresholds are evaluated in **NZD**, converted
   using the **USD/NZD rate at the time of the transaction** for realized amounts and
@@ -167,14 +172,72 @@ verifies" principle as trading signals (see Human-in-the-loop execution below).
 
 ## Validation gate (non-negotiable thresholds)
 
-A strategy may not proceed to paper trading unless, **after** applying NZ tax drag and FX
-fees (`quant_engine/validation/`, thresholds in `config.yaml` under `validation_thresholds`):
+A strategy may not proceed to paper trading unless (`quant_engine/validation/`, thresholds
+in `config.yaml` under `validation_thresholds`):
 - Sharpe Ratio > 1.5
 - Max Drawdown < 15%
 - Profit Factor > 1.3
 
 `overfit_guard.py` must also confirm out-of-sample / walk-forward performance doesn't
 materially decay versus in-sample before a strategy is considered validated.
+
+**These three ratios are computed on an FX-fee-adjusted but NOT tax-adjusted equity
+curve.** This looks like it contradicts the original brief ("after accounting for NZ tax
+and FX fees") — see "NZ tax & FX validation methodology (three real bugs)" below for the
+full, empirically-verified reasoning for why folding FIF tax into these specific ratios is
+actually wrong, not a shortcut. The real tax-adjusted bottom line is still computed and
+reported on every result, via `Metrics.net_return_nzd` — it's just not one of the three
+pass/fail gates, because it can't be without corrupting them.
+
+## NZ tax & FX validation methodology (three real bugs, found by the user's own scrutiny)
+
+On 2026-08-28 the user noticed every backtested strategy — genuinely different trading
+logic (RSI mean reversion, MACD momentum, channel breakout, a separately-discovered
+strategy) — was landing on the *same* Sharpe ratio (~0.05) regardless of how different
+their raw performance was, and asked for the bugs to be found. That scrutiny was
+correct and surfaced three real, compounding bugs in `nz_tax_fx/fif_calculator.py` and
+`backtester/nz_adjustments.py`. **If you ever see backtested strategies clustering on
+suspiciously similar metrics again, re-read this section before trusting the numbers.**
+
+1. **Missing marginal tax rate (100% implicit tax rate).** `calculate_fdr_tax()`/
+   `calculate_cv_tax()` computed *assessable income* (5% of opening value, or the actual
+   gain) and returned it directly as if it *were* the tax owed — never multiplying by the
+   investor's actual marginal income tax rate. Real NZ income tax works like any other
+   income: assessable income is taxed at your bracket rate (10.5%-39%), not confiscated
+   entirely. Fixed: `FIFCalculator` now takes `marginal_tax_rate` (config
+   `nz_tax.marginal_tax_rate`, default 0.33 — a reference point, not advice; set it to your
+   own real rate) and applies it inside both methods.
+2. **Daily FX revaluation of the whole notional principal.** The equity curve was being
+   converted to NZD using the *daily* USD/NZD rate across the whole backtest. A strategy
+   that's flat (no position) most of the time holds its capital as idle USD cash — but
+   converting that idle cash through two years of day-by-day currency movement measured at
+   **~140x the volatility of the strategy's own USD returns** on a real backtest. Every
+   strategy tested was dominated by the *same* currency-market noise, not its own trading
+   skill, which is exactly why they all converged. Fixed:
+   `backtester/nz_adjustments.convert_equity_curve_to_nzd()` now converts using a single
+   fixed rate (the backtest's end date) for the whole curve — a constant-factor conversion
+   doesn't change any % returns at all, so Sharpe/MaxDD/ProfitFactor on the NZD curve now
+   exactly match the USD-native ones.
+3. **FIF tax folded into a daily-return-based ratio at all.** Even after fixing (1) and
+   (2), subtracting the real FIF tax as a lump sum on the *final bar* created a measured
+   **-364-standard-deviation outlier** return that completely dominated Sharpe's mean/std
+   calculation regardless of the tax amount. Smoothing that same tax as a linear ramp
+   across every day didn't fix it either: a low-frequency strategy's *median* daily move is
+   exactly $0 (flat/no-position days), so *any* nonzero constant daily drag persistently
+   biases the mean negative against near-zero variance, producing nonsensical Sharpe
+   ratios (observed: -10 to -45). **The root cause is a category error**: FIF tax is a
+   once-a-year lump-sum liability, not a day-to-day risk phenomenon, and no way of
+   injecting it into a volatility-based ratio is correct. Fixed: tax is no longer folded
+   into the Sharpe/MaxDD/ProfitFactor-facing curve at all
+   (`prepare_metrics_curve()` — FX-fee-adjusted only). It's computed separately as a single
+   bottom-line number (`net_return_nzd()`) and surfaced via `Metrics.net_return_nzd` for
+   transparency (CLAUDE.md Guardrails: never hide costs) without corrupting the gate.
+
+After all three fixes, re-validating the same classic strategies against real SPY data
+produced Sharpe ratios that exactly matched their raw USD-native performance (1.18, 0.03,
+-0.09 — properly differentiated, not clustered) with a distinct, sensible `net_return_nzd`
+per strategy. The registry was reset and re-validated with the corrected code — see
+`data/strategy_registry.json`'s history entries for the ones reset on 2026-08-28.
 
 **Known Phase 4 backtest engine limitations** (honest, not silently papered over):
 - **Fixed**: `compute_profit_factor()` used to return Python's `float("inf")` for a

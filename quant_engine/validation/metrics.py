@@ -23,6 +23,14 @@ class Metrics:
     sharpe_ratio: float
     max_drawdown_pct: float
     profit_factor: float
+    # Informational only — NOT folded into sharpe_ratio/max_drawdown_pct. See
+    # backtester/nz_adjustments.py's module docstring for why: FIF tax is a once-a-year
+    # lump-sum event, not a day-to-day risk phenomenon, and injecting it into a volatility-
+    # based ratio (as either a single-day shock or a smoothed daily ramp) manufactures
+    # statistically meaningless results that have nothing to do with the strategy's actual
+    # trading risk. This field carries the real bottom-line "what you'd actually keep"
+    # figure for transparency (CLAUDE.md: never hide costs) without corrupting the gate.
+    net_return_nzd: float | None = None
 
 
 def compute_sharpe_ratio(

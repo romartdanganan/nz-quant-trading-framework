@@ -28,9 +28,10 @@
     "id": "5648b953b8dd483c8a0476f5e5dff83b",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.050037218291462196,
-      "max_drawdown_pct": 0.1097393396613231,
-      "profit_factor": 999.0
+      "sharpe_ratio": 1.1806872059108229,
+      "max_drawdown_pct": 0.0007784623953641078,
+      "profit_factor": 999.0,
+      "net_return_nzd": -2297.891603213233
     },
     "history": [
       {
@@ -40,6 +41,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.05 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 1.18 <= required 1.5"
       }
     ]
   },
@@ -72,9 +81,10 @@
     "id": "2080ab70815a40d4a312c9d06eacfc88",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.04985488991577823,
-      "max_drawdown_pct": 0.10935786837507153,
-      "profit_factor": 1.022222917987284
+      "sharpe_ratio": 0.03299509951783951,
+      "max_drawdown_pct": 0.0008235748181477625,
+      "profit_factor": 1.022222917987284,
+      "net_return_nzd": -2467.958367053974
     },
     "history": [
       {
@@ -84,6 +94,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.05 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.03 <= required 1.5"
       }
     ]
   },
@@ -122,9 +140,10 @@
     "id": "8214dfb717484efda977c30417feebd6",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.049864607886243,
-      "max_drawdown_pct": 0.10940693927622365,
-      "profit_factor": 0.0
+      "sharpe_ratio": -0.08694233964783345,
+      "max_drawdown_pct": 0.0002109375768988637,
+      "profit_factor": 0.0,
+      "net_return_nzd": -2474.8759235650723
     },
     "history": [
       {
@@ -134,6 +153,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.05 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe -0.09 <= required 1.5"
       }
     ]
   },
@@ -161,6 +188,14 @@
       {
         "status": "rejected",
         "reason": "not cointegrated (p-value 0.992 >= 0.05)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.992 >= 0.05)"
       }
     ]
   },
@@ -184,6 +219,14 @@
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.146 >= 0.05)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
       },
       {
         "status": "rejected",
@@ -220,9 +263,10 @@
     "id": "fa4b80a9c6914667a8c8e722c0e24b4d",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.04997265297228921,
-      "max_drawdown_pct": 0.10943913026076077,
-      "profit_factor": 4.029530761460418
+      "sharpe_ratio": 0.8857986677077316,
+      "max_drawdown_pct": 0.0005538823448388564,
+      "profit_factor": 4.029530761460418,
+      "net_return_nzd": -2336.2467480020364
     },
     "history": [
       {
@@ -232,6 +276,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.05 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in NZ tax/FX adjustment that was corrupting Sharpe/MaxDD (see CLAUDE.md)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.89 <= required 1.5"
       }
     ]
   }

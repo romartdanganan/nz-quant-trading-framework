@@ -39,10 +39,25 @@ class FIFCalculator:
         fx_converter: FXConverter | None = None,
         threshold_nzd: float = 50_000.0,
         fdr_rate: float = 0.05,
+        marginal_tax_rate: float = 0.33,
     ):
+        """marginal_tax_rate: the investor's own personal income tax rate — FDR/CV compute
+        *assessable income* (5% of opening value, or the actual gain), which then gets
+        taxed at the investor's marginal rate like any other income, exactly as ordinary
+        NZ income tax brackets work. This was previously missing entirely (a real bug,
+        not a simplification): assessable income was being treated as if it *were* the
+        tax owed, i.e. an implicit 100% tax rate, which overstated tax drag enormously —
+        on a real backtest this consumed close to 100% of a strategy's raw gain, since a
+        FIF investor's whole NZD-denominated principal (not just trading P&L) is exposed
+        to FX revaluation each year, and that revaluation typically dwarfs a strategy's
+        actual trading edge. 0.33 is a reasonable default reference (NZ's $70k-$180k
+        bracket) — decision-support only, not tax advice; set this to your own real
+        marginal rate for a more accurate estimate.
+        """
         self.fx = fx_converter or FXConverter()
         self.threshold_nzd = threshold_nzd
         self.fdr_rate = fdr_rate
+        self.marginal_tax_rate = marginal_tax_rate
 
     def total_cost_nzd(self, holdings: list[Holding]) -> float:
         return sum(
@@ -51,7 +66,8 @@ class FIFCalculator:
         )
 
     def calculate_fdr_tax(self, opening_value_nzd: float) -> float:
-        return max(0.0, opening_value_nzd) * self.fdr_rate
+        assessable_income = max(0.0, opening_value_nzd) * self.fdr_rate
+        return assessable_income * self.marginal_tax_rate
 
     def calculate_cv_tax(
         self,
@@ -61,10 +77,10 @@ class FIFCalculator:
         sales_nzd: float,
         dividends_nzd: float,
     ) -> float:
-        taxable_gain = (
-            (closing_value_nzd - opening_value_nzd) - purchases_nzd + sales_nzd + dividends_nzd
+        assessable_income = max(
+            0.0, (closing_value_nzd - opening_value_nzd) - purchases_nzd + sales_nzd + dividends_nzd
         )
-        return max(0.0, taxable_gain)
+        return assessable_income * self.marginal_tax_rate
 
     def assess(
         self,

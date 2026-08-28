@@ -17,7 +17,8 @@ def _fake_backtest_result() -> BacktestResult:
 
 def _patch_common(monkeypatch, metrics: Metrics, overfit_passed: bool = True):
     monkeypatch.setattr(validator, "run_backtest", lambda spec, data: _fake_backtest_result())
-    monkeypatch.setattr(validator, "apply_nz_costs", lambda equity, **kwargs: equity)
+    monkeypatch.setattr(validator, "prepare_metrics_curve", lambda equity, *a, **kwargs: equity)
+    monkeypatch.setattr(validator, "net_return_nzd", lambda *a, **kwargs: 0.0)
     monkeypatch.setattr(validator, "compute_metrics", lambda equity, trades: metrics)
     monkeypatch.setattr(
         validator,

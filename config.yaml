@@ -33,6 +33,11 @@ nz_tax:
   fif_method: auto                # auto | fdr | cv  (auto picks the lower of FDR/CV where election rules allow)
   fdr_rate: 0.05
   tax_year_end: "03-31"           # NZ tax year ends 31 March
+  # FDR/CV compute *assessable income* (5% of opening value, or the actual gain) — that
+  # income is then taxed at YOUR marginal income tax rate, same as any other income.
+  # 0.33 is a reference default (NZ's $70k-$180k bracket); set this to your own real
+  # marginal rate for an accurate estimate. Decision-support only, not tax advice.
+  marginal_tax_rate: 0.33
 
 validation_thresholds:
   min_sharpe_ratio: 1.5

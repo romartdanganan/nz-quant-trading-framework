@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from config.settings import settings
 from nz_tax_fx.fif_calculator import FIFCalculator, FIFTaxResult, Holding
 
 
@@ -35,7 +36,7 @@ def generate_report(
     calculator: FIFCalculator | None = None,
     fif_method: str = "auto",
 ) -> TaxYearReport:
-    calculator = calculator or FIFCalculator()
+    calculator = calculator or FIFCalculator(marginal_tax_rate=settings.get("nz_tax.marginal_tax_rate", 0.33))
     tax_year_start, tax_year_end = tax_year_bounds(as_of)
 
     fif_result = calculator.assess(

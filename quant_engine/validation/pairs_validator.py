@@ -9,9 +9,11 @@ yet — the cointegration test is the only overfitting guard for pairs so far.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pandas as pd
 
-from backtester.nz_adjustments import apply_nz_costs
+from backtester.nz_adjustments import net_return_nzd, prepare_metrics_curve
 from backtester.pairs_engine import run_pairs_backtest
 from config.settings import settings
 from nz_tax_fx.fif_calculator import FIFCalculator
@@ -31,7 +33,10 @@ def validate_pairs_strategy(
     fif_calculator: FIFCalculator | None = None,
 ) -> ValidationResult:
     fx_converter = fx_converter or FXConverter()
-    fif_calculator = fif_calculator or FIFCalculator(fx_converter=fx_converter)
+    fif_calculator = fif_calculator or FIFCalculator(
+        fx_converter=fx_converter,
+        marginal_tax_rate=settings.get("nz_tax.marginal_tax_rate", 0.33),
+    )
     significance = settings.get(
         "pairs_trading.cointegration_significance", DEFAULT_COINTEGRATION_SIGNIFICANCE
     )
@@ -53,15 +58,15 @@ def validate_pairs_strategy(
     fx_fee_pct = settings.get("validation_thresholds.fx_fee_pct", 0.005)
 
     equity_curve = result.equity_curve
-    if apply_tax or apply_fx:
-        equity_curve = apply_nz_costs(
-            equity_curve,
-            fx_converter=fx_converter,
-            fif_calculator=fif_calculator,
-            fx_fee_pct=fx_fee_pct if apply_fx else 0.0,
-        )
+    if apply_fx:
+        equity_curve = prepare_metrics_curve(equity_curve, fx_converter, fx_fee_pct)
 
     metrics = compute_metrics(equity_curve, result.trades)
+    if apply_tax:
+        net_return = net_return_nzd(
+            result.equity_curve, fx_converter, fif_calculator, fx_fee_pct if apply_fx else 0.0
+        )
+        metrics = replace(metrics, net_return_nzd=net_return)
 
     if metrics.sharpe_ratio <= min_sharpe:
         return ValidationResult(False, f"Sharpe {metrics.sharpe_ratio:.2f} <= required {min_sharpe}", metrics)

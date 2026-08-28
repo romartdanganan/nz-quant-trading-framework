@@ -1,16 +1,19 @@
-"""Top-level validation gate: runs a full backtest, applies NZ tax/FX drag, checks the
-Sharpe/MaxDD/ProfitFactor thresholds, and runs the walk-forward overfit guard. This is the
-single place that decides candidate -> validated/rejected (CLAUDE.md Strategy Lifecycle) —
-validation logic must never be duplicated ad hoc elsewhere.
+"""Top-level validation gate: runs a full backtest, checks the Sharpe/MaxDD/ProfitFactor
+thresholds (computed on an FX-fee-adjusted-but-not-tax-adjusted curve — see
+backtester/nz_adjustments.py's module docstring for why FIF tax stays out of these ratios),
+surfaces the real NZ-tax-adjusted bottom line separately via Metrics.net_return_nzd, and
+runs the walk-forward overfit guard. This is the single place that decides
+candidate -> validated/rejected (CLAUDE.md Strategy Lifecycle) — validation logic must
+never be duplicated ad hoc elsewhere.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import pandas as pd
 
 from backtester.engine import run_backtest
-from backtester.nz_adjustments import apply_nz_costs
+from backtester.nz_adjustments import net_return_nzd, prepare_metrics_curve
 from backtester.signals import UnsupportedIndicatorError
 from config.settings import settings
 from nz_tax_fx.fif_calculator import FIFCalculator
@@ -34,7 +37,10 @@ def validate_strategy(
     fif_calculator: FIFCalculator | None = None,
 ) -> ValidationResult:
     fx_converter = fx_converter or FXConverter()
-    fif_calculator = fif_calculator or FIFCalculator(fx_converter=fx_converter)
+    fif_calculator = fif_calculator or FIFCalculator(
+        fx_converter=fx_converter,
+        marginal_tax_rate=settings.get("nz_tax.marginal_tax_rate", 0.33),
+    )
 
     min_sharpe = settings.get("validation_thresholds.min_sharpe_ratio", 1.5)
     max_drawdown = settings.get("validation_thresholds.max_drawdown_pct", 0.15)
@@ -52,15 +58,15 @@ def validate_strategy(
         return ValidationResult(False, "strategy produced no trades over the backtest period")
 
     equity_curve = result.equity_curve
-    if apply_tax or apply_fx:
-        equity_curve = apply_nz_costs(
-            equity_curve,
-            fx_converter=fx_converter,
-            fif_calculator=fif_calculator,
-            fx_fee_pct=fx_fee_pct if apply_fx else 0.0,
-        )
+    if apply_fx:
+        equity_curve = prepare_metrics_curve(equity_curve, fx_converter, fx_fee_pct)
 
     metrics = compute_metrics(equity_curve, result.trades)
+    if apply_tax:
+        net_return = net_return_nzd(
+            result.equity_curve, fx_converter, fif_calculator, fx_fee_pct if apply_fx else 0.0
+        )
+        metrics = replace(metrics, net_return_nzd=net_return)
 
     if metrics.sharpe_ratio <= min_sharpe:
         return ValidationResult(False, f"Sharpe {metrics.sharpe_ratio:.2f} <= required {min_sharpe}", metrics)

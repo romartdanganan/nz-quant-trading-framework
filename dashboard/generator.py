@@ -70,6 +70,7 @@ def build_dashboard_data(registry: StrategyRegistry) -> dict:
                 "sharpe": metrics.get("sharpe_ratio"),
                 "max_drawdown": metrics.get("max_drawdown_pct"),
                 "profit_factor": metrics.get("profit_factor"),
+                "net_return_nzd": metrics.get("net_return_nzd"),
                 "last_reason": history[-1].get("reason", "") if history else "",
                 "incubation_log": record.get("incubation_log") or [],
             }
@@ -183,13 +184,14 @@ def _render_table_rows(strategies: list[dict]) -> str:
         sharpe = f'{s["sharpe"]:.2f}' if s["sharpe"] is not None else "—"
         maxdd = f'{s["max_drawdown"]:.1%}' if s["max_drawdown"] is not None else "—"
         pf = f'{s["profit_factor"]:.2f}' if s["profit_factor"] is not None else "—"
+        net_return = f'${s["net_return_nzd"]:,.0f}' if s.get("net_return_nzd") is not None else "—"
         rows.append(
             "<tr>"
             f'<td>{html.escape(s["name"])}</td>'
             f'<td>{html.escape(s["kind"])}</td>'
             f'<td>{html.escape(s["ticker"])}</td>'
             f'<td><span class="status-badge" style="background:{color}">{html.escape(s["status"])}</span></td>'
-            f"<td>{sharpe}</td><td>{maxdd}</td><td>{pf}</td>"
+            f"<td>{sharpe}</td><td>{maxdd}</td><td>{pf}</td><td>{net_return}</td>"
             f'<td class="reason">{html.escape(s["last_reason"])}</td>'
             "</tr>"
         )
@@ -293,7 +295,7 @@ def _render_html(data: dict, sharpe_threshold: float) -> str:
   <h2>All strategies</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Name</th><th>Kind</th><th>Ticker</th><th>Status</th><th>Sharpe</th><th>MaxDD</th><th>Profit Factor</th><th>Last outcome</th></tr></thead>
+      <thead><tr><th>Name</th><th>Kind</th><th>Ticker</th><th>Status</th><th>Sharpe</th><th>MaxDD</th><th>Profit Factor</th><th>Net Return (NZD)</th><th>Last outcome</th></tr></thead>
       <tbody>{_render_table_rows(strategies)}</tbody>
     </table>
   </div>
