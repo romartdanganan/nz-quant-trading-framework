@@ -48,6 +48,33 @@ def test_github_search_repositories_handles_request_error(monkeypatch):
     assert github_scraper.search_repositories("mean reversion") == []
 
 
+def test_github_search_repositories_retries_once_on_timeout_then_succeeds(monkeypatch):
+    payload = {"items": [{"full_name": "user/repo", "description": "x", "html_url": "https://github.com/user/repo"}]}
+    calls = {"n": 0}
+
+    def flaky_get(*a, **k):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise requests.Timeout("timed out")
+        return FakeResponse(payload)
+
+    monkeypatch.setattr(github_scraper.requests, "get", flaky_get)
+
+    results = github_scraper.search_repositories("mean reversion")
+
+    assert calls["n"] == 2
+    assert len(results) == 1
+
+
+def test_github_search_repositories_gives_up_after_repeated_timeouts(monkeypatch):
+    def always_timeout(*a, **k):
+        raise requests.Timeout("timed out")
+
+    monkeypatch.setattr(github_scraper.requests, "get", always_timeout)
+
+    assert github_scraper.search_repositories("mean reversion") == []
+
+
 def test_fetch_feed_entries_parses_local_feed():
     results = blog_scraper.fetch_feed_entries(feed_urls=[SAMPLE_RSS])
 
