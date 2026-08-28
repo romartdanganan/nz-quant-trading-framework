@@ -28,7 +28,11 @@ research_pipeline:
   # was silently starving blog/forum sources entirely (github alone could fill the cap).
   # Safe to raise: rule_extractor is free/deterministic regardless of source count, and the
   # separate max_gemini_calls_per_run cap below still bounds the only per-item cost.
-  max_sources_per_run: 100         # cap scraped items per pipeline run
+  # Raised again to 150 (2026-08-28) after adding arxiv_scraper.py: collect_raw_sources()
+  # appends github results first and truncates once at the very end, so a cap too close to
+  # github's own yield (up to 14 queries x 5 results = 70) would silently starve arXiv/blog
+  # of ever being included, same class of bug as the max_sources_per_run=25 issue above.
+  max_sources_per_run: 150         # cap scraped items per pipeline run
   use_gemini_fallback: true
   # Updated 2026-08-28: gemini-2.5-flash returned a live 404 from Google's API ("no longer
   # available to new users... use models/gemini-3.6-flash") during a real pipeline run —

@@ -102,9 +102,24 @@ on a recurring schedule, per the user's explicit choice — revisit only if they
 Pipeline stages (`strategy_research/pipeline.py` is the orchestrator):
 
 1. **Scrape** (`strategy_research/scrapers/`) — pull raw strategy-concept text from
-   **official APIs only**, never fragile HTML scraping: GitHub Search API, Reddit API
-   (e.g. r/algotrading), quant-blog RSS feeds, arXiv API for papers. Dedup against
-   `data/cache/seen_sources.json` so the same source is never reprocessed.
+   **official APIs only**, never fragile HTML scraping: GitHub Search API (search results
+   plus each repo's README — the one-line search description alone is never concrete
+   enough to extract a real rule from, see below), Reddit API (e.g. r/algotrading, optional
+   — degrades gracefully without credentials), quant-blog RSS feeds, arXiv API for papers.
+   Dedup against `data/cache/seen_sources.json`, **but only for sources that were actually
+   evaluated** (accepted, or genuinely sent through extraction and rejected) — a source
+   skipped purely because a run's `max_gemini_calls_per_run` budget was already spent, or
+   because Gemini wasn't configured/was rate-limited, must NOT be marked seen, or it would
+   be permanently blacklisted by a transient resource constraint rather than a real content
+   judgment (a real bug found and fixed 2026-08-28 — see `strategy_research/pipeline.py`'s
+   `run()`). Also note: `SEARCH_QUERIES` (`strategy_research/pipeline.py`) must stay varied
+   — GitHub/arXiv search ranks by relevance to the literal query text, so a small fixed set
+   of generic queries converges on the same top results every run regardless of API quota;
+   broadening the query set (not just re-running the same one) is what actually finds new
+   candidates. `research_pipeline.gemini_model` in `config.yaml` is a live external
+   dependency (Google periodically retires model names) — if the pipeline logs "Gemini
+   distillation failed... 404 NOT_FOUND", check the error text for the currently-required
+   model name rather than guessing one.
 2. **Extract — primary path, free and deterministic**
    (`strategy_research/translator/rule_extractor.py` + `strategy_research/vocabulary.py`):
    match scraped text against a controlled vocabulary of known indicators (RSI, MACD,

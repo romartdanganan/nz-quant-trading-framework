@@ -13,7 +13,7 @@ from pathlib import Path
 from config.settings import settings
 from strategy_research.distiller import gemini_client
 from strategy_research.registry import StrategyRegistry
-from strategy_research.scrapers import blog_scraper, forum_scraper, github_scraper
+from strategy_research.scrapers import arxiv_scraper, blog_scraper, forum_scraper, github_scraper
 from strategy_research.scrapers.models import RawSource
 from strategy_research.translator import nl_to_rules, rule_extractor
 
@@ -50,6 +50,8 @@ def collect_raw_sources(max_sources: int) -> list[RawSource]:
     sources.extend(blog_scraper.fetch_feed_entries())
     for query in SEARCH_QUERIES:
         sources.extend(forum_scraper.search_posts(query, max_results=5))
+    for query in SEARCH_QUERIES:
+        sources.extend(arxiv_scraper.search_papers(query, max_results=3))
     return sources[:max_sources]
 
 
