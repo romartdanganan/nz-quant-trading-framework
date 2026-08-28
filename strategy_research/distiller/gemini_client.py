@@ -69,7 +69,7 @@ def _get_client():
     wait=wait_fixed(1),
     retry=retry_if_exception_type(GeminiQuotaExceeded),
 )
-def distill(text: str, model: str = "gemini-2.5-flash") -> list[dict]:
+def distill(text: str, model: str = "gemini-3.6-flash") -> list[dict]:
     """Returns a list of raw candidate dicts (unvalidated). Raises GeminiNotConfigured or
     GeminiQuotaExceeded for the caller (pipeline.py) to handle; any other provider error
     is logged and treated as "no candidates found" rather than propagated.

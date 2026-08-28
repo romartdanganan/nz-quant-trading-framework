@@ -22,9 +22,19 @@ fx:
 
 research_pipeline:
   cadence: on_demand              # on_demand only — no recurring/scheduled runs
-  max_sources_per_run: 25         # cap scraped items per pipeline run
+  # Raised from 25 to 100 (2026-08-28) after broadening SEARCH_QUERIES in pipeline.py from
+  # 4 to 14 terms: collect_raw_sources() concatenates github results before blog/forum
+  # results and truncates once at the very end, so a low cap combined with more queries
+  # was silently starving blog/forum sources entirely (github alone could fill the cap).
+  # Safe to raise: rule_extractor is free/deterministic regardless of source count, and the
+  # separate max_gemini_calls_per_run cap below still bounds the only per-item cost.
+  max_sources_per_run: 100         # cap scraped items per pipeline run
   use_gemini_fallback: true
-  gemini_model: gemini-2.5-flash  # free-tier model; re-check current free-tier options before use
+  # Updated 2026-08-28: gemini-2.5-flash returned a live 404 from Google's API ("no longer
+  # available to new users... use models/gemini-3.6-flash") during a real pipeline run —
+  # confirmed directly from the API response, not guessed. Re-check current free-tier
+  # options before assuming this stays valid long-term.
+  gemini_model: gemini-3.6-flash
   max_gemini_calls_per_run: 10    # keep well under free-tier daily quota
   seen_sources_cache: data/cache/seen_sources.json
 

@@ -20,10 +20,26 @@ from strategy_research.translator import nl_to_rules, rule_extractor
 logger = logging.getLogger(__name__)
 
 SEARCH_QUERIES = [
+    # Archetype-level queries (original set) — kept for broad coverage.
     "mean reversion trading strategy",
     "momentum trading strategy",
     "pairs trading strategy",
     "breakout trading strategy",
+    # Indicator-level queries — these surface genuinely different repos than the archetype
+    # queries above (GitHub's search ranks by relevance to the literal query text, so a
+    # fixed small set of generic queries converges on the same top-starred repos every run;
+    # varying the terms is what actually broadens candidate coverage, not just having more
+    # API quota to re-run the same queries with).
+    "RSI mean reversion strategy python",
+    "bollinger bands trading strategy python",
+    "MACD crossover strategy backtest",
+    "keltner channel trading strategy",
+    "VWAP trading strategy python",
+    "z-score mean reversion strategy",
+    "moving average crossover strategy python",
+    "channel breakout strategy backtest",
+    "cointegration pairs trading python",
+    "statistical arbitrage strategy python",
 ]
 
 
@@ -54,7 +70,7 @@ def run(registry: StrategyRegistry | None = None) -> dict:
     max_sources = settings.get("research_pipeline.max_sources_per_run", 25)
     use_gemini = settings.get("research_pipeline.use_gemini_fallback", True)
     max_gemini_calls = settings.get("research_pipeline.max_gemini_calls_per_run", 10)
-    gemini_model = settings.get("research_pipeline.gemini_model", "gemini-2.5-flash")
+    gemini_model = settings.get("research_pipeline.gemini_model", "gemini-3.6-flash")
     cache_path = Path(
         settings.get("research_pipeline.seen_sources_cache", "data/cache/seen_sources.json")
     )
@@ -73,22 +89,27 @@ def run(registry: StrategyRegistry | None = None) -> dict:
         if result.spec is not None:
             registry.add_candidate(nl_to_rules.normalize_from_rule_extractor(result.spec))
             accepted += 1
+            seen.add(source.url)
         elif use_gemini and gemini_calls_used < max_gemini_calls:
             gemini_calls_used += 1
             try:
                 raw_candidates = gemini_client.distill(source.text, model=gemini_model)
             except gemini_client.GeminiNotConfigured:
+                # Not a real evaluation — don't mark seen, or this source would never get a
+                # fair shot once a key is configured later.
                 logger.info("Gemini fallback unavailable (no API key) — skipping %s", source.url)
                 skipped += 1
-                seen.add(source.url)
                 continue
             except gemini_client.GeminiQuotaExceeded:
+                # Same reasoning — quota resets, so don't permanently blacklist this source.
                 logger.warning("Gemini quota exhausted — disabling fallback for the rest of this run")
                 use_gemini = False
                 skipped += 1
-                seen.add(source.url)
                 continue
 
+            # We got a real response back (even if it yielded zero usable candidates) —
+            # this source was genuinely evaluated, so remember it either way.
+            seen.add(source.url)
             promoted_any = False
             for raw_candidate in raw_candidates:
                 spec = nl_to_rules.normalize_from_gemini(raw_candidate, source.url)
@@ -100,9 +121,11 @@ def run(registry: StrategyRegistry | None = None) -> dict:
             else:
                 rejected += 1
         else:
+            # Never actually evaluated — either Gemini fallback is off, or this run's
+            # max_gemini_calls_per_run budget is exhausted. Don't mark seen: a per-run
+            # budget cap is meant to spread evaluation across runs over time, not
+            # permanently blacklist whatever didn't fit in today's budget.
             skipped += 1
-
-        seen.add(source.url)
 
     registry.save()
     _save_seen(cache_path, seen)
