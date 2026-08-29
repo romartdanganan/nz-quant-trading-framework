@@ -43,19 +43,26 @@ def test_run_validation_promotes_using_best_passing_ticker(tmp_path, monkeypatch
 
     summary = runner.run_validation(registry=registry, universe=["SPY", "AAPL"])
 
-    assert summary == {"candidates": 2, "validated": 1, "rejected": 1, "errored": 0}
+    # record_pass clears the bar on both universe tickers here, so both become validated
+    # (one in-place, one cloned) instead of the pipeline keeping only a single winner.
+    assert summary == {"candidates": 2, "validated": 2, "rejected": 1, "errored": 0}
     passed = registry.get(record_pass["id"])
     assert passed["status"] == "validated"
     assert passed["ticker"] in ("SPY", "AAPL")
     assert registry.get(record_fail["id"])["status"] == "rejected"
 
+    clones = [r for r in registry.list(status="validated") if r["id"] != record_pass["id"]]
+    assert len(clones) == 1
+    assert clones[0]["ticker"] in ("SPY", "AAPL")
+    assert clones[0]["ticker"] != passed["ticker"]
 
-def test_run_validation_picks_highest_sharpe_ticker_when_multiple_pass(tmp_path, monkeypatch):
+
+def test_run_validation_promotes_every_passing_ticker_best_one_in_place(tmp_path, monkeypatch):
     registry = StrategyRegistry(tmp_path / "registry.json")
     record = registry.add_candidate(make_spec("https://example.com/multi"))
 
     def fake_validate(spec, price_data):
-        # both tickers pass; AAPL has the better Sharpe and should be chosen
+        # both tickers pass; AAPL has the better Sharpe and should be the in-place winner
         sharpe = 1.6 if price_data is runner_price_data["SPY"] else 2.5
         return ValidationResult(True, "ok", Metrics(sharpe, 0.05, 2.0))
 
@@ -72,8 +79,13 @@ def test_run_validation_picks_highest_sharpe_ticker_when_multiple_pass(tmp_path,
 
     summary = runner.run_validation(registry=registry, universe=["SPY", "AAPL"])
 
-    assert summary["validated"] == 1
+    # both SPY and AAPL passed -> two validated records total (in-place + one clone)
+    assert summary["validated"] == 2
     assert registry.get(record["id"])["ticker"] == "AAPL"
+
+    clone = next(r for r in registry.list(status="validated") if r["id"] != record["id"])
+    assert clone["ticker"] == "SPY"
+    assert clone["name"] == "test [SPY]"
 
 
 def test_run_validation_with_no_candidates_is_a_noop(tmp_path):

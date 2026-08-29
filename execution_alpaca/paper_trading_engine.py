@@ -52,13 +52,14 @@ def run_incubation_cycle(registry: StrategyRegistry | None = None) -> dict:
     records = [r for r in registry.list(status="incubating") if r.get("kind", "single") == "single"]
 
     if not records:
-        return {"records": 0, "processed": 0, "errored": 0}
+        return {"records": 0, "processed": 0, "errored": 0, "events": []}
 
     end = date.today()
     start = end - timedelta(days=LOOKBACK_DAYS)
     price_data_cache: dict[str, object] = {}
 
     processed = errored = 0
+    events: list[dict] = []
     for record in records:
         ticker = record.get("ticker", DEFAULT_TICKER)
         if ticker not in price_data_cache:
@@ -74,17 +75,19 @@ def run_incubation_cycle(registry: StrategyRegistry | None = None) -> dict:
             continue
 
         try:
-            _process_one_cycle(record, price_data)
+            event = _process_one_cycle(record, price_data)
+            if event is not None:
+                events.append({"name": record.get("name"), **event})
             processed += 1
         except (UnsupportedIndicatorError, ValueError, KeyError) as exc:
             logger.warning("Skipping %r this cycle: %s", record.get("name"), exc)
             errored += 1
 
     registry.save()
-    return {"records": len(records), "processed": processed, "errored": errored}
+    return {"records": len(records), "processed": processed, "errored": errored, "events": events}
 
 
-def _process_one_cycle(record: dict, price_data) -> None:
+def _process_one_cycle(record: dict, price_data) -> dict | None:
     spec = StrategySpec.from_dict(record)
     signals = generate_signals(spec, price_data)
     latest_signal = signals.iloc[-1]
@@ -97,9 +100,19 @@ def _process_one_cycle(record: dict, price_data) -> None:
     starting_equity = record.setdefault("incubation_starting_equity", SIMULATED_STARTING_EQUITY)
     realized_pnl = record.get("incubation_realized_pnl", 0.0)
     closed_trade = None
+    event = None
 
     if position is None and bool(latest_signal["entry_signal"]):
         position = _open_position(record, close_price, atr)
+        if position is not None:
+            event = {
+                "event": "opened",
+                "ticker": record.get("ticker"),
+                "shares": position["shares"],
+                "entry_price": position["entry_price"],
+                "stop_loss": position["stop_loss"],
+                "target_price": position["target_price"],
+            }
     elif position is not None:
         exit_triggered = bool(latest_signal["exit_signal"])
         stop_hit = close_price <= position["stop_loss"]
@@ -108,6 +121,7 @@ def _process_one_cycle(record: dict, price_data) -> None:
             trade_pnl = position["shares"] * (close_price - position["entry_price"])
             realized_pnl += trade_pnl
             closed_trade = {"pnl": trade_pnl, "pnl_comm": trade_pnl}
+            event = {"event": "closed", "ticker": record.get("ticker"), "pnl": trade_pnl}
             position = None
 
     equity = starting_equity + realized_pnl
@@ -117,6 +131,7 @@ def _process_one_cycle(record: dict, price_data) -> None:
     record["incubation_position"] = position
     record["incubation_realized_pnl"] = realized_pnl
     record_snapshot(record, equity_value=equity, as_of=date.today(), trade=closed_trade)
+    return event
 
 
 def _open_position(record: dict, close_price: float, atr: float) -> dict | None:

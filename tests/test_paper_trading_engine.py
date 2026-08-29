@@ -41,7 +41,7 @@ def _patch_signals(monkeypatch, entry: bool, exit_: bool):
 
 def test_run_incubation_cycle_with_no_records_is_noop(tmp_path):
     registry = StrategyRegistry(tmp_path / "registry.json")
-    assert engine.run_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0}
+    assert engine.run_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0, "events": []}
 
 
 def test_run_incubation_cycle_handles_missing_price_data(tmp_path, monkeypatch):
@@ -56,7 +56,7 @@ def test_run_incubation_cycle_handles_missing_price_data(tmp_path, monkeypatch):
     monkeypatch.setattr(engine, "load_price_data", raise_unavailable)
 
     summary = engine.run_incubation_cycle(registry=registry)
-    assert summary == {"records": 1, "processed": 0, "errored": 1}
+    assert summary == {"records": 1, "processed": 0, "errored": 1, "events": []}
 
 
 def test_run_incubation_cycle_uses_each_records_own_ticker_and_caches_loads(tmp_path, monkeypatch):
@@ -88,7 +88,7 @@ def test_run_incubation_cycle_uses_each_records_own_ticker_and_caches_loads(tmp_
 
     summary = engine.run_incubation_cycle(registry=registry)
 
-    assert summary == {"records": 3, "processed": 3, "errored": 0}
+    assert summary == {"records": 3, "processed": 3, "errored": 0, "events": []}
     assert sorted(load_calls) == ["AAPL", "MSFT"]  # AAPL loaded once despite two records
 
 

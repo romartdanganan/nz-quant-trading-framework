@@ -41,26 +41,29 @@ def _load_universe_price_data(universe: list[str], lookback_days: int) -> dict[s
     return price_data_by_ticker
 
 
-def _best_result_across_universe(
+def _all_results_across_universe(
     spec: StrategySpec, price_data_by_ticker: dict[str, object]
-) -> tuple[str | None, ValidationResult | None, str | None, ValidationResult | None]:
-    """Returns (best_pass_ticker, best_pass_result, best_fail_ticker, best_fail_result)."""
-    best_pass_ticker = best_fail_ticker = None
-    best_pass_result = best_fail_result = None
+) -> tuple[list[tuple[str, ValidationResult]], str | None, ValidationResult | None]:
+    """Returns (passing_results, best_fail_ticker, best_fail_result).
+
+    passing_results holds *every* universe ticker that cleared validation, not just the
+    single best one — a rule that genuinely works on several tickers should be able to
+    incubate on all of them concurrently instead of the pipeline arbitrarily picking one
+    winner and discarding the rest (CLAUDE.md: don't waste a candidate that already
+    cleared every threshold on a second instrument).
+    """
+    passing: list[tuple[str, ValidationResult]] = []
+    best_fail_ticker = best_fail_result = None
 
     for ticker, price_data in price_data_by_ticker.items():
         result = validate_strategy(spec, price_data)
         if result.passed:
-            if best_pass_result is None or (
-                result.metrics
-                and best_pass_result.metrics
-                and result.metrics.sharpe_ratio > best_pass_result.metrics.sharpe_ratio
-            ):
-                best_pass_ticker, best_pass_result = ticker, result
+            passing.append((ticker, result))
         elif best_fail_result is None:
             best_fail_ticker, best_fail_result = ticker, result
 
-    return best_pass_ticker, best_pass_result, best_fail_ticker, best_fail_result
+    passing.sort(key=lambda item: item[1].metrics.sharpe_ratio, reverse=True)
+    return passing, best_fail_ticker, best_fail_result
 
 
 def run_validation(
@@ -89,15 +92,24 @@ def run_validation(
             errored += 1
             continue
 
-        pass_ticker, pass_result, fail_ticker, fail_result = _best_result_across_universe(
-            spec, price_data_by_ticker
-        )
+        passing, fail_ticker, fail_result = _all_results_across_universe(spec, price_data_by_ticker)
 
-        if pass_result is not None:
-            record["ticker"] = pass_ticker
-            metrics_dict = pass_result.metrics.__dict__ if pass_result.metrics else None
-            registry.promote_to_validated(record["id"], metrics_dict, f"[{pass_ticker}] {pass_result.reason}")
+        if passing:
+            best_ticker, best_result = passing[0]
+            record["ticker"] = best_ticker
+            metrics_dict = best_result.metrics.__dict__ if best_result.metrics else None
+            registry.promote_to_validated(record["id"], metrics_dict, f"[{best_ticker}] {best_result.reason}")
             validated += 1
+
+            # Every other passing ticker becomes its own validated record so it can
+            # incubate at the same time as the best one, rather than being discarded.
+            for extra_ticker, extra_result in passing[1:]:
+                clone = registry.add_candidate(spec)
+                clone["ticker"] = extra_ticker
+                clone["name"] = f"{clone['name']} [{extra_ticker}]"
+                extra_metrics = extra_result.metrics.__dict__ if extra_result.metrics else None
+                registry.promote_to_validated(clone["id"], extra_metrics, f"[{extra_ticker}] {extra_result.reason}")
+                validated += 1
         else:
             reason = f"[{fail_ticker}] {fail_result.reason}" if fail_result else "no universe ticker produced a result"
             record["metrics"] = fail_result.metrics.__dict__ if fail_result and fail_result.metrics else None

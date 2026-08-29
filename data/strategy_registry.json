@@ -84,6 +84,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -173,6 +181,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
       },
       {
         "status": "rejected",
@@ -267,6 +283,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
       },
       {
         "status": "rejected",
@@ -461,6 +485,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -544,8 +576,16 @@
       "profit_factor": 5.136113524090994,
       "net_return_nzd": 88246.91599641634
     },
-    "incubation_log": [],
-    "incubation_trades": []
+    "incubation_log": [
+      {
+        "date": "2026-08-29",
+        "equity": 100000.0
+      }
+    ],
+    "incubation_trades": [],
+    "incubation_starting_equity": 100000.0,
+    "incubation_position": null,
+    "incubation_realized_pnl": 0.0
   },
   {
     "kind": "single",
@@ -604,6 +644,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
       },
       {
         "status": "rejected",
@@ -672,6 +720,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -732,6 +788,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
       },
       {
         "status": "rejected",
@@ -800,6 +864,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -860,6 +932,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
       },
       {
         "status": "rejected",
