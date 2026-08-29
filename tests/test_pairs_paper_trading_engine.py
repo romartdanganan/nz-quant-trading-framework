@@ -15,7 +15,7 @@ def make_price_series(values: list[float]) -> pd.Series:
 
 def test_run_pairs_incubation_cycle_with_no_records_is_noop(tmp_path):
     registry = StrategyRegistry(tmp_path / "registry.json")
-    assert engine.run_pairs_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0}
+    assert engine.run_pairs_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0, "events": []}
 
 
 def test_run_pairs_incubation_cycle_ignores_single_ticker_candidates(tmp_path):
@@ -24,7 +24,7 @@ def test_run_pairs_incubation_cycle_ignores_single_ticker_candidates(tmp_path):
     registry = StrategyRegistry(tmp_path / "registry.json")
     registry.add_candidate(classic_rsi_reversion())
 
-    assert engine.run_pairs_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0}
+    assert engine.run_pairs_incubation_cycle(registry=registry) == {"records": 0, "processed": 0, "errored": 0, "events": []}
 
 
 def test_run_pairs_incubation_cycle_handles_missing_price_data(tmp_path, monkeypatch):
@@ -39,7 +39,7 @@ def test_run_pairs_incubation_cycle_handles_missing_price_data(tmp_path, monkeyp
     monkeypatch.setattr(engine, "load_price_data", raise_unavailable)
 
     summary = engine.run_pairs_incubation_cycle(registry=registry)
-    assert summary == {"records": 1, "processed": 0, "errored": 1}
+    assert summary == {"records": 1, "processed": 0, "errored": 1, "events": []}
 
 
 def test_process_one_cycle_opens_position_on_entry_zscore():

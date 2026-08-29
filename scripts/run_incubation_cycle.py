@@ -27,20 +27,59 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _describe_event(event: dict) -> str:
+    name = event.get("name", "?")
+    kind = event["event"]
+    if kind == "opened" and "pair" in event:
+        return f"Opened {name}: {event['pair']} (z={event['zscore']:.2f})"
+    if kind == "closed" and "pair" in event:
+        return f"Closed {name}: {event['pair']} P&L ${event['pnl']:+.2f}"
+    if kind == "opened":
+        return f"Opened {name}: {event.get('ticker')} x{event.get('shares'):.2f} @ ${event.get('entry_price'):.2f}"
+    if kind == "closed":
+        return f"Closed {name}: {event.get('ticker')} P&L ${event['pnl']:+.2f}"
+    if kind == "promoted":
+        return f"PROMOTED to proven: {name} - {event['reason']}"
+    if kind == "rejected":
+        return f"Rejected: {name} - {event['reason']}"
+    return f"{kind}: {name}"
+
+
 def main() -> None:
     from dashboard.generator import generate_dashboard
     from execution_alpaca.pairs_paper_trading_engine import run_pairs_incubation_cycle
     from execution_alpaca.paper_trading_engine import run_incubation_cycle
     from quant_engine.validation.incubation import process_incubating_strategies, start_incubation_for_validated
+    from scripts.notify import send_toast
 
     logger.info("=== incubation cycle run started ===")
-    logger.info("start_incubation_for_validated: %s", start_incubation_for_validated())
-    logger.info("run_incubation_cycle: %s", run_incubation_cycle())
-    logger.info("run_pairs_incubation_cycle: %s", run_pairs_incubation_cycle())
-    logger.info("process_incubating_strategies: %s", process_incubating_strategies())
+
+    started = start_incubation_for_validated()
+    logger.info("start_incubation_for_validated: %s", started)
+
+    single_summary = run_incubation_cycle()
+    logger.info("run_incubation_cycle: %s", single_summary)
+
+    pairs_summary = run_pairs_incubation_cycle()
+    logger.info("run_pairs_incubation_cycle: %s", pairs_summary)
+
+    decision_summary = process_incubating_strategies()
+    logger.info("process_incubating_strategies: %s", decision_summary)
 
     dashboard_path = generate_dashboard()
     logger.info("dashboard regenerated: %s", dashboard_path.resolve())
+
+    notable_lines = []
+    if started["started"] > 0:
+        notable_lines.append(f"{started['started']} strategy(ies) started incubation")
+    notable_lines += [_describe_event(e) for e in single_summary.get("events", [])]
+    notable_lines += [_describe_event(e) for e in pairs_summary.get("events", [])]
+    notable_lines += [_describe_event(e) for e in decision_summary.get("events", [])]
+
+    if notable_lines:
+        send_toast("NZ Quant Trader — incubation update", "\n".join(notable_lines))
+        logger.info("Sent toast notification: %s", notable_lines)
+
     logger.info("=== incubation cycle run finished ===")
 
 

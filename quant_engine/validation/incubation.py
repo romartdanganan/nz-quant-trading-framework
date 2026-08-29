@@ -114,6 +114,7 @@ def process_incubating_strategies(registry: StrategyRegistry | None = None) -> d
     records = registry.list(status="incubating")
 
     promoted = rejected = still_incubating = 0
+    events: list[dict] = []
     for record in records:
         decision = evaluate_incubation(record)
         if decision.action == "promote":
@@ -121,9 +122,11 @@ def process_incubating_strategies(registry: StrategyRegistry | None = None) -> d
             metrics = compute_metrics(equity_curve, record.get("incubation_trades") or [])
             registry.promote_to_proven(record["id"], metrics.__dict__, decision.reason)
             promoted += 1
+            events.append({"event": "promoted", "name": record.get("name"), "reason": decision.reason})
         elif decision.action == "reject":
             registry.reject(record["id"], decision.reason)
             rejected += 1
+            events.append({"event": "rejected", "name": record.get("name"), "reason": decision.reason})
         else:
             still_incubating += 1
 
@@ -133,4 +136,5 @@ def process_incubating_strategies(registry: StrategyRegistry | None = None) -> d
         "promoted": promoted,
         "rejected": rejected,
         "still_incubating": still_incubating,
+        "events": events,
     }

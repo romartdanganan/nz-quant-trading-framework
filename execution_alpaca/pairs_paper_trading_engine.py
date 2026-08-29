@@ -42,28 +42,31 @@ def run_pairs_incubation_cycle(registry: StrategyRegistry | None = None) -> dict
     records = [r for r in registry.list(status="incubating") if r.get("kind") == "pairs"]
 
     if not records:
-        return {"records": 0, "processed": 0, "errored": 0}
+        return {"records": 0, "processed": 0, "errored": 0, "events": []}
 
     end = date.today()
     start = end - timedelta(days=LOOKBACK_DAYS)
 
     processed = errored = 0
+    events: list[dict] = []
     for record in records:
         try:
             spec = PairsSpec.from_dict(record)
             price_a = load_price_data(spec.ticker_a, start, end)["close"]
             price_b = load_price_data(spec.ticker_b, start, end)["close"]
-            _process_one_cycle(record, spec, price_a, price_b)
+            event = _process_one_cycle(record, spec, price_a, price_b)
+            if event is not None:
+                events.append({"name": record.get("name"), **event})
             processed += 1
         except (PriceDataUnavailable, ValueError, KeyError) as exc:
             logger.warning("Skipping pairs %r this cycle: %s", record.get("name"), exc)
             errored += 1
 
     registry.save()
-    return {"records": len(records), "processed": processed, "errored": errored}
+    return {"records": len(records), "processed": processed, "errored": errored, "events": events}
 
 
-def _process_one_cycle(record: dict, spec: PairsSpec, price_a: pd.Series, price_b: pd.Series) -> None:
+def _process_one_cycle(record: dict, spec: PairsSpec, price_a: pd.Series, price_b: pd.Series) -> dict | None:
     price_a, price_b = align_price_series(price_a, price_b)
     hedge_ratio = compute_hedge_ratio(price_a, price_b)
     spread = compute_spread(price_a, price_b, hedge_ratio)
@@ -76,6 +79,7 @@ def _process_one_cycle(record: dict, spec: PairsSpec, price_a: pd.Series, price_
     starting_equity = record.setdefault("incubation_starting_equity", SIMULATED_STARTING_EQUITY)
     realized_pnl = record.get("incubation_realized_pnl", 0.0)
     closed_trade = None
+    event = None
 
     if pd.notna(latest_z):
         if position is None:
@@ -83,10 +87,18 @@ def _process_one_cycle(record: dict, spec: PairsSpec, price_a: pd.Series, price_
                 position = {"direction": 1, "entry_spread": latest_spread, "hedge_ratio": hedge_ratio}
             elif latest_z >= spec.entry_zscore:
                 position = {"direction": -1, "entry_spread": latest_spread, "hedge_ratio": hedge_ratio}
+            if position is not None:
+                event = {
+                    "event": "opened",
+                    "pair": f"{spec.ticker_a}/{spec.ticker_b}",
+                    "direction": position["direction"],
+                    "zscore": latest_z,
+                }
         elif abs(latest_z) <= spec.exit_zscore:
             trade_pnl = position["direction"] * (latest_spread - position["entry_spread"])
             realized_pnl += trade_pnl
             closed_trade = {"pnl": trade_pnl, "pnl_comm": trade_pnl}
+            event = {"event": "closed", "pair": f"{spec.ticker_a}/{spec.ticker_b}", "pnl": trade_pnl}
             position = None
 
     equity = starting_equity + realized_pnl
@@ -96,3 +108,4 @@ def _process_one_cycle(record: dict, spec: PairsSpec, price_a: pd.Series, price_
     record["incubation_position"] = position
     record["incubation_realized_pnl"] = realized_pnl
     record_snapshot(record, equity_value=equity, as_of=date.today(), trade=closed_trade)
+    return event
