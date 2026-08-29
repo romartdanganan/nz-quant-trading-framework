@@ -52,3 +52,45 @@ def test_normalize_from_gemini_rejects_out_of_range_threshold():
 
 def test_normalize_from_gemini_missing_fields_rejected():
     assert nl_to_rules.normalize_from_gemini({}, "https://example.com") is None
+
+
+def test_normalize_from_gemini_rejects_pairs_trading_archetype():
+    # StrategySpec is structurally single-ticker and can't represent pairs trading (needs
+    # two tickers + a hedge ratio — see PairsSpec). A real bug found 2026-08-30: Gemini
+    # returned a "pairs_trading" archetype candidate that got built as a plain
+    # single-ticker spec with an arbitrary ZSCORE condition duplicated into entry/exit.
+    candidate = {
+        "name": "Pair Trading Cointegration Strategy",
+        "archetype": "pairs_trading",
+        "entry_conditions": [{"indicator": "ZSCORE", "operator": ">", "threshold": 1.0}],
+        "exit_conditions": [{"indicator": "ZSCORE", "operator": ">", "threshold": 1.0}],
+        "timeframe": "1d",
+        "confidence": 0.8,
+    }
+    assert nl_to_rules.normalize_from_gemini(candidate, "https://example.com") is None
+
+
+def test_normalize_from_gemini_rejects_missing_exit_conditions():
+    # A real bug found 2026-08-30: falling back to entry_conditions when exit_conditions
+    # was missing/empty fabricated a degenerate entry==exit spec that can never sensibly
+    # hold a position (the same failure mode fixed in rule_extractor.py 2026-08-28).
+    candidate = {
+        "name": "Alpaca Opening Range Momentum",
+        "archetype": "momentum",
+        "entry_conditions": [{"indicator": "MACD", "operator": ">", "threshold": 0.0}],
+        "timeframe": "1d",
+        "confidence": 0.85,
+    }
+    assert nl_to_rules.normalize_from_gemini(candidate, "https://example.com") is None
+
+
+def test_normalize_from_gemini_rejects_identical_entry_and_exit_conditions():
+    candidate = {
+        "name": "bad",
+        "archetype": "momentum",
+        "entry_conditions": [{"indicator": "MACD", "operator": ">", "threshold": 0.0}],
+        "exit_conditions": [{"indicator": "MACD", "operator": ">", "threshold": 0.0}],
+        "timeframe": "1d",
+        "confidence": 0.85,
+    }
+    assert nl_to_rules.normalize_from_gemini(candidate, "https://example.com") is None
