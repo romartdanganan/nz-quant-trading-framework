@@ -986,5 +986,140 @@
         "reason": "[SPY] only 6 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_MA_V",
+    "ticker_a": "MA",
+    "ticker_b": "V",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/MA_V",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-29T15:39:36.210242+00:00",
+    "id": "20c76bf01ac249b987f33912fdb8d3b3",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.322 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_JPM_BAC",
+    "ticker_a": "JPM",
+    "ticker_b": "BAC",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/JPM_BAC",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-29T15:39:36.210246+00:00",
+    "id": "81bf3c2b844741cf954b373f37a1839c",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.451 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_HD_LOW",
+    "ticker_a": "HD",
+    "ticker_b": "LOW",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/HD_LOW",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-29T15:39:36.210249+00:00",
+    "id": "7d267cacdc4b47f18ae1d1902a6d8223",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.661 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_UPS_FDX",
+    "ticker_a": "UPS",
+    "ticker_b": "FDX",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/UPS_FDX",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-29T15:39:36.210254+00:00",
+    "id": "7a63991294c945c293f25a07deeb7869",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.554 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_GM_F",
+    "ticker_a": "GM",
+    "ticker_b": "F",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/GM_F",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-29T15:39:36.210257+00:00",
+    "id": "c31a443ec1a14dc38295d770eb3eee75",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.060 >= 0.05)"
+      }
+    ]
   }
 ]

@@ -54,6 +54,16 @@ class GeminiQuotaExceeded(RuntimeError):
     """Free-tier rate/quota limit hit — caller should stop using the fallback this run."""
 
 
+class GeminiTransientError(RuntimeError):
+    """A transient provider-side failure (503 UNAVAILABLE, high demand, etc.) — nothing to
+    do with this specific item's content. Caller must NOT mark the source as seen, or a
+    momentary Gemini outage would permanently blacklist a source that was never actually
+    evaluated (same reasoning as GeminiQuotaExceeded — see CLAUDE.md's seen-sources note;
+    this exact failure mode was found 2026-08-30 being silently swallowed into "no
+    candidates found" instead).
+    """
+
+
 def _get_client():
     api_key = get_env("GEMINI_API_KEY")
     if not api_key:
@@ -67,12 +77,16 @@ def _get_client():
     reraise=True,
     stop=stop_after_attempt(2),
     wait=wait_fixed(1),
-    retry=retry_if_exception_type(GeminiQuotaExceeded),
+    # Retrying GeminiQuotaExceeded would be pointless (a free-tier quota doesn't clear in
+    # 1 second); a transient provider-side hiccup (503/UNAVAILABLE) often does clear that
+    # fast, so that's the one worth one quick retry before giving up on this item.
+    retry=retry_if_exception_type(GeminiTransientError),
 )
 def distill(text: str, model: str = "gemini-3.6-flash") -> list[dict]:
-    """Returns a list of raw candidate dicts (unvalidated). Raises GeminiNotConfigured or
-    GeminiQuotaExceeded for the caller (pipeline.py) to handle; any other provider error
-    is logged and treated as "no candidates found" rather than propagated.
+    """Returns a list of raw candidate dicts (unvalidated). Raises GeminiNotConfigured,
+    GeminiQuotaExceeded, or GeminiTransientError for the caller (pipeline.py) to handle;
+    any other provider error (e.g. malformed output) is logged and treated as "no
+    candidates found" rather than propagated.
     """
     client = _get_client()
     try:
@@ -83,8 +97,11 @@ def distill(text: str, model: str = "gemini-3.6-flash") -> list[dict]:
     except GeminiNotConfigured:
         raise
     except Exception as exc:
-        if "RESOURCE_EXHAUSTED" in str(exc) or "429" in str(exc):
-            raise GeminiQuotaExceeded(str(exc)) from exc
+        exc_str = str(exc)
+        if "RESOURCE_EXHAUSTED" in exc_str or "429" in exc_str:
+            raise GeminiQuotaExceeded(exc_str) from exc
+        if "UNAVAILABLE" in exc_str or "503" in exc_str or "DEADLINE_EXCEEDED" in exc_str:
+            raise GeminiTransientError(exc_str) from exc
         logger.warning("Gemini distillation failed, skipping item: %s", exc)
         return []
 

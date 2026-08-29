@@ -160,6 +160,14 @@ watchlists:
   pairs_trading:
     - [KO, PEP]
     - [XOM, CVX]
+    # Added 2026-08-30 — both original pairs failed cointegration outright (KO/PEP
+    # p=0.99, XOM/CVX p=0.146), so broadening to more classic same-sector competitor
+    # pairs rather than concluding pairs trading itself doesn't work here.
+    - [MA, V]
+    - [JPM, BAC]
+    - [HD, LOW]
+    - [UPS, FDX]
+    - [GM, F]
 
 data:
   historical_dir: data/historical

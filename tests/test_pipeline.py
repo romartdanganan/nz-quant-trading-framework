@@ -1,4 +1,5 @@
 from strategy_research import pipeline
+from strategy_research.distiller.gemini_client import GeminiTransientError
 from strategy_research.registry import StrategyRegistry
 from strategy_research.scrapers.models import RawSource
 
@@ -112,3 +113,29 @@ def test_source_gemini_evaluated_and_rejected_is_not_reprocessed_next_run(tmp_pa
 
     assert first["candidates_rejected"] == 1
     assert second["sources_new"] == 0
+
+
+def test_source_hitting_transient_gemini_error_is_not_permanently_blacklisted(tmp_path, monkeypatch):
+    # A real bug found 2026-08-30: a 503/UNAVAILABLE provider hiccup used to fall through
+    # distill()'s generic except branch as an empty list, indistinguishable from "Gemini
+    # genuinely evaluated this and found nothing" — permanently blacklisting a source
+    # Gemini never actually looked at. Contrast with the prior test: this must behave like
+    # the budget-exceeded case (retried next run), not the genuinely-evaluated case.
+    source = RawSource(text="I like turtles.", url="https://example.com/f", title="idea")
+    monkeypatch.setattr(pipeline, "collect_raw_sources", lambda max_sources: [source])
+
+    def raise_transient(text, model):
+        raise GeminiTransientError("503 UNAVAILABLE")
+
+    monkeypatch.setattr(pipeline.gemini_client, "distill", raise_transient)
+    _patch_config(
+        monkeypatch, tmp_path, **{"research_pipeline.use_gemini_fallback": True, "research_pipeline.max_gemini_calls_per_run": 5}
+    )
+
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    first = pipeline.run(registry=registry)
+    second = pipeline.run(registry=registry)
+
+    assert first["sources_skipped"] == 1
+    assert second["sources_new"] == 1  # not blacklisted by the transient failure
+    assert registry.list(status="candidate") == []

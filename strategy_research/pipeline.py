@@ -115,6 +115,16 @@ def run(registry: StrategyRegistry | None = None) -> dict:
                 use_gemini = False
                 skipped += 1
                 continue
+            except gemini_client.GeminiTransientError as exc:
+                # A real bug found 2026-08-30: 503/UNAVAILABLE errors were falling through
+                # to distill()'s generic except-and-return-[] branch, which pipeline.py then
+                # treated as "genuinely evaluated, nothing found" — permanently blacklisting
+                # a source Gemini never actually looked at. Unlike quota exhaustion this is
+                # a momentary provider hiccup, not a run-wide condition, so keep trying
+                # Gemini on the next item rather than disabling it for the rest of the run.
+                logger.warning("Gemini transiently unavailable, skipping %s: %s", source.url, exc)
+                skipped += 1
+                continue
 
             # We got a real response back (even if it yielded zero usable candidates) —
             # this source was genuinely evaluated, so remember it either way.
