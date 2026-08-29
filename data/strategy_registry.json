@@ -974,12 +974,16 @@
     "raw_excerpt": "",
     "created_at": "2026-08-29T15:03:00.586127+00:00",
     "id": "b30fade78c024eea8d5c6e89a2cc2a92",
-    "status": "candidate",
+    "status": "rejected",
     "metrics": null,
     "history": [
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 6 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }
