@@ -55,3 +55,44 @@ def test_load_price_data_raises_on_download_error(tmp_path, monkeypatch):
 
     with pytest.raises(PriceDataUnavailable):
         load_price_data("AAPL", date(2024, 1, 1), date(2024, 1, 3), historical_dir=tmp_path)
+
+
+def _fake_download_with_trailing_nan_bar(*args, **kwargs):
+    # Reproduces a real yfinance artifact observed 2026-08-29: the most recent trading
+    # day's bar comes back with NaN OHLC but a real (nonzero) volume figure, across every
+    # ticker in that day's run — see backtester/data_loader.py's _drop_incomplete_bars.
+    dates = pd.date_range("2024-01-01", periods=3, freq="D")
+    return pd.DataFrame(
+        {
+            "Open": [100.0, 101.0, float("nan")],
+            "High": [101.0, 102.0, float("nan")],
+            "Low": [99.0, 100.0, float("nan")],
+            "Close": [100.0, 101.0, float("nan")],
+            "Volume": [1000, 1100, 1200],
+        },
+        index=dates,
+    )
+
+
+def test_load_price_data_drops_trailing_bar_with_nan_ohlc(tmp_path, monkeypatch):
+    monkeypatch.setattr(data_loader.yf, "download", _fake_download_with_trailing_nan_bar)
+
+    df = load_price_data("AAPL", date(2024, 1, 1), date(2024, 1, 3), historical_dir=tmp_path)
+
+    assert len(df) == 2
+    assert not df[["open", "high", "low", "close"]].isna().any().any()
+
+
+def test_load_price_data_raises_when_only_bar_is_incomplete(tmp_path, monkeypatch):
+    def all_nan_download(*a, **k):
+        dates = pd.date_range("2024-01-01", periods=1, freq="D")
+        return pd.DataFrame(
+            {"Open": [float("nan")], "High": [float("nan")], "Low": [float("nan")],
+             "Close": [float("nan")], "Volume": [1000]},
+            index=dates,
+        )
+
+    monkeypatch.setattr(data_loader.yf, "download", all_nan_download)
+
+    with pytest.raises(PriceDataUnavailable):
+        load_price_data("AAPL", date(2024, 1, 1), date(2024, 1, 1), historical_dir=tmp_path)

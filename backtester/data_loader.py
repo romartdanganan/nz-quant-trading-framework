@@ -53,6 +53,10 @@ def load_price_data(
         raise PriceDataUnavailable(f"No price data returned for {ticker} {start}..{end}")
 
     df = _normalize_columns(raw)
+    df = _drop_incomplete_bars(df, ticker)
+
+    if df.empty:
+        raise PriceDataUnavailable(f"No usable price data for {ticker} {start}..{end} after dropping incomplete bars")
 
     historical_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(cache_file)
@@ -66,3 +70,22 @@ def _normalize_columns(raw: pd.DataFrame) -> pd.DataFrame:
     df.columns = [str(c).lower() for c in df.columns]
     df.index.name = "date"
     return df[REQUIRED_COLUMNS]
+
+
+def _drop_incomplete_bars(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    """yfinance occasionally returns a trailing bar (usually the most recent trading day)
+    with NaN open/high/low/close but a real volume figure — observed 2026-08-29 on a
+    GOOGL pull whose last row was entirely NaN OHLC. A NaN silently propagates into the
+    backtest's final equity value and corrupts anything read off the last bar (e.g.
+    net_return_nzd's lump-sum tax calc), without ever raising an error. Drop any bar
+    missing OHLC data rather than let it enter the cache or a backtest.
+    """
+    price_cols = ["open", "high", "low", "close"]
+    incomplete = df[price_cols].isna().any(axis=1)
+    if incomplete.any():
+        logger.warning(
+            "Dropping %d incomplete bar(s) for %s (NaN OHLC): %s",
+            incomplete.sum(), ticker, list(df.index[incomplete].astype(str)),
+        )
+        df = df[~incomplete]
+    return df

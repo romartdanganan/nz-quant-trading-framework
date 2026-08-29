@@ -60,6 +60,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -92,10 +116,10 @@
     "id": "2080ab70815a40d4a312c9d06eacfc88",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.03299509951783951,
-      "max_drawdown_pct": 0.0008235748181477625,
-      "profit_factor": 1.022222917987284,
-      "net_return_nzd": -2467.958367053974
+      "sharpe_ratio": 0.011859836848125766,
+      "max_drawdown_pct": 0.1348976129629084,
+      "profit_factor": 0.9793366204843804,
+      "net_return_nzd": -3347.303456593206
     },
     "history": [
       {
@@ -129,6 +153,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.03 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.03 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.03 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
       }
     ]
   },
@@ -195,6 +243,30 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: broadened strategy_validation.universe (added QQQ, IWM, GLD, AMD, GOOGL, AMZN, META, XOM)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
       },
       {
         "status": "rejected",
@@ -365,6 +437,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -395,12 +491,12 @@
     "raw_excerpt": "Larry Connors' RSI(2) mean reversion: buy below 10, sell above 70 (hand-designed reference strategy).",
     "created_at": "2026-08-28T09:11:08.217992+00:00",
     "id": "ec8db0df4e414dbb8f24f21715f659c5",
-    "status": "rejected",
+    "status": "incubating",
     "metrics": {
-      "sharpe_ratio": 0.5532412527367563,
-      "max_drawdown_pct": 0.000707749209721878,
-      "profit_factor": 1.9868667690853263,
-      "net_return_nzd": -2392.544236882137
+      "sharpe_ratio": 1.5453017011305552,
+      "max_drawdown_pct": 0.13273619452179408,
+      "profit_factor": 5.136113524090994,
+      "net_return_nzd": 88246.91599641634
     },
     "history": [
       {
@@ -410,8 +506,46 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.55 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "validated",
+        "reason": "[GOOGL] passed all validation thresholds"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "validated",
+        "reason": "[GOOGL] passed all validation thresholds"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "validated",
+        "reason": "[GOOGL] passed all validation thresholds"
+      },
+      {
+        "status": "incubating",
+        "reason": "forward-test started"
       }
-    ]
+    ],
+    "ticker": "GOOGL",
+    "incubation_start_date": "2026-08-29",
+    "baseline_metrics": {
+      "sharpe_ratio": 1.5453017011305552,
+      "max_drawdown_pct": 0.13273619452179408,
+      "profit_factor": 5.136113524090994,
+      "net_return_nzd": 88246.91599641634
+    },
+    "incubation_log": [],
+    "incubation_trades": []
   },
   {
     "kind": "single",
@@ -446,6 +580,30 @@
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
       },
       {
         "status": "rejected",
@@ -490,6 +648,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -526,6 +708,30 @@
       {
         "status": "candidate",
         "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
       },
       {
         "status": "rejected",
@@ -570,6 +776,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -610,6 +840,30 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: broadened strategy_validation.universe with small/mid-cap tickers discovered via opportunity_finder (COUR, KURA, ONON, CLBK, FNKO, LENZ, PLAB, LAC, NABL) - mega-caps are the most efficient/arbitraged tickers, hardest for a simple technical rule to beat"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real data bug \u2014 yfinance returned a trailing bar with NaN OHLC (but real volume) for every ticker pulled today, silently corrupting every backtest run since fetch, including the GOOGL classic_rsi2_reversion validation (see backtester/data_loader.py _drop_incomplete_bars, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real position-sizing bug \u2014 engine.py bought exactly 1 share per trade (backtrader default FixedSize sizer) regardless of account size, contradicting the documented full-position design; now uses PercentSizer at 95% of cash (backtester/engine.py, 2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }

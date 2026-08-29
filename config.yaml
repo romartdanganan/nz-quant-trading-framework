@@ -85,6 +85,20 @@ strategy_validation:
     - AMZN
     - META
     - XOM
+    # Smaller/less-followed names surfaced live by quant_engine/screeners/opportunity_finder.py
+    # (2026-08-29) — mega-caps above are the most arbitraged, most efficient tickers in the
+    # market, the hardest place for a simple technical rule to find an edge. All confirmed to
+    # have >= 2 years of price history (strategy_validation universe needs that for a
+    # meaningful backtest, per runner.py's DEFAULT_LOOKBACK_DAYS).
+    - COUR
+    - KURA
+    - ONON
+    - CLBK
+    - FNKO
+    - LENZ
+    - PLAB
+    - LAC
+    - NABL
 
 # Forward-testing / incubation gate (Strategy Lifecycle in CLAUDE.md). A "validated"
 # (backtest-passed) strategy must clear this live-but-unfunded forward test before it is

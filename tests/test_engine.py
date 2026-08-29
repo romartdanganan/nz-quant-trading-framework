@@ -58,3 +58,27 @@ def test_run_backtest_with_never_true_entry_never_trades():
 
     assert result.trades == []
     assert all(value == 50_000.0 for value in result.equity_curve)
+
+
+def test_run_backtest_buys_a_full_position_not_a_single_share():
+    # Real bug found 2026-08-29: with no sizer configured, backtrader's default FixedSize
+    # sizer buys exactly 1 share regardless of account size, contradicting this module's
+    # documented "full position" design and making MaxDD/net-return figures meaningless
+    # (see engine.py's PercentSizer fix). A ~$1 daily price move on a $100k account should
+    # swing the portfolio by a meaningful fraction of a percent, not by ~$1.
+    df = make_ohlcv(seed=1)
+    spec = StrategySpec(
+        name="always-in",
+        archetype=Archetype.MEAN_REVERSION,
+        entry_conditions=[Condition(Indicator.RSI, Operator.LT, 100)],  # true almost always
+        exit_conditions=[Condition(Indicator.RSI, Operator.GT, 100)],  # never true — stays in position
+        timeframe="1d",
+        source_url="https://example.com",
+        extraction_method="rule",
+        confidence=0.9,
+    )
+
+    result = run_backtest(spec, df, initial_cash=100_000.0)
+
+    equity_swing = result.equity_curve.max() - result.equity_curve.min()
+    assert equity_swing > 1_000.0

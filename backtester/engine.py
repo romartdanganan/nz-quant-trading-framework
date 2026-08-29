@@ -7,6 +7,10 @@ Known Phase 4 limitation: no stop-loss/position-sizing is modeled here (that's
 risk_management/, Phase 7) — metrics from this engine reflect the raw strategy edge on a
 single full-position long/flat basis. Incubation (paper trading with real risk controls
 active) is what actually proves the strategy is trustworthy with those controls in place.
+
+A real bug found 2026-08-29: `strategy.buy()` with no explicit sizer configured used
+backtrader's default `FixedSize` sizer (stake=1 — a literal single share regardless of
+account size), not the "full position" described above. Fixed via `PercentSizer` below.
 """
 from __future__ import annotations
 
@@ -20,6 +24,9 @@ from strategy_research.strategy_spec import StrategySpec
 
 DEFAULT_INITIAL_CASH = 100_000.0
 DEFAULT_COMMISSION = 0.001  # 0.1% per trade — a conservative default, not a broker quote
+# Leaves a buffer below 100% of cash so a buy order isn't rejected for insufficient funds
+# once commission is added on top of the share price.
+FULL_POSITION_PCT = 95
 
 
 class _SignalData(bt.feeds.PandasData):
@@ -73,6 +80,7 @@ def run_backtest(
     cerebro.broker.setcommission(commission=commission)
     cerebro.adddata(_SignalData(dataname=combined))
     cerebro.addstrategy(_SignalStrategy)
+    cerebro.addsizer(bt.sizers.PercentSizer, percents=FULL_POSITION_PCT)
     cerebro.addanalyzer(_EquityTracker, _name="equity")
 
     results = cerebro.run()
