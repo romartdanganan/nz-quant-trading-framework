@@ -69,7 +69,19 @@ def evaluate_incubation(record: dict) -> IncubationDecision:
     baseline_sharpe = baseline_metrics.get("sharpe_ratio", 0.0) or 0.0
     baseline_maxdd = baseline_metrics.get("max_drawdown_pct", 0.0) or 0.0
 
-    if baseline_sharpe > 0 and current_metrics.sharpe_ratio < baseline_sharpe * (1 - max_sharpe_decay_pct):
+    # An equity curve with zero variance (no signal has fired yet, so equity has sat
+    # exactly flat) makes compute_sharpe_ratio return a literal 0.0 as its "insufficient
+    # data" sentinel — indistinguishable from genuine decay. Only compare against the
+    # decay threshold once the curve has actually moved; a real declining/volatile curve
+    # (even pre-trade, e.g. an open position's mark-to-market) still produces a nonzero
+    # std and must still be caught.
+    has_moved = equity_curve.pct_change().dropna().std() != 0
+
+    if (
+        has_moved
+        and baseline_sharpe > 0
+        and current_metrics.sharpe_ratio < baseline_sharpe * (1 - max_sharpe_decay_pct)
+    ):
         return IncubationDecision(
             "reject",
             f"incubation Sharpe {current_metrics.sharpe_ratio:.2f} decayed more than "
