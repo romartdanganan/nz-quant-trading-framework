@@ -1129,5 +1129,50 @@
         "reason": "not cointegrated (p-value 0.060 >= 0.05)"
       }
     ]
+  },
+  {
+    "kind": "single",
+    "name": "Bitcoin MACD Crossover Strategy",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/VermeirJellen/Bitcoin_MACD_Strategy",
+    "extraction_method": "gemini",
+    "confidence": 0.9,
+    "raw_excerpt": "",
+    "created_at": "2026-08-30T20:54:45.311216+00:00",
+    "id": "4e496b830e074b65abe27d9b698620c1",
+    "status": "rejected",
+    "metrics": {
+      "sharpe_ratio": 0.011881942997410294,
+      "max_drawdown_pct": 0.13489776268961706,
+      "profit_factor": 0.9793354135287213,
+      "net_return_nzd": -2618.034078542552
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      }
+    ]
   }
 ]
