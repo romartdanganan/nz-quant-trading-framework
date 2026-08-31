@@ -139,6 +139,11 @@ screener:
 # Pairs trading (Phase 6). Candidate pairs are seeded from watchlists.pairs_trading below.
 pairs_trading:
   cointegration_significance: 0.05      # Engle-Granger p-value must be below this to trade the pair
+  # Bonferroni-divides the significance above by the total number of pairs ever tested
+  # (registry "kind": "pairs" records, any status) before applying it — added 2026-09-01
+  # after broadening the universe to 14 pairs with zero passes made the per-pair false
+  # positive risk (~5% at raw alpha=0.05) worth correcting for. Set to "none" to disable.
+  multiple_testing_correction: bonferroni
   lookback_period: 30                   # rolling window for the spread z-score
   entry_zscore: 2.0
   exit_zscore: 0.5

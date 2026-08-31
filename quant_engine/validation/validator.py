@@ -28,6 +28,7 @@ class ValidationResult:
     passed: bool
     reason: str
     metrics: Metrics | None = None
+    p_value: float | None = None  # pairs-trading cointegration p-value; unused for single-ticker
 
 
 def validate_strategy(

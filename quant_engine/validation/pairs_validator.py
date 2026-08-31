@@ -31,24 +31,35 @@ def validate_pairs_strategy(
     price_b: pd.Series,
     fx_converter: FXConverter | None = None,
     fif_calculator: FIFCalculator | None = None,
+    significance: float | None = None,
 ) -> ValidationResult:
+    """`significance` lets the caller pass a multiple-testing-corrected threshold (see
+    pairs_runner.py) instead of the raw config value — every candidate tested as part of
+    the same broadening pass shares one family-wise error rate, so the correction has to be
+    computed across the whole batch, not per-pair here.
+    """
     fx_converter = fx_converter or FXConverter()
     fif_calculator = fif_calculator or FIFCalculator(
         fx_converter=fx_converter,
         marginal_tax_rate=settings.get("nz_tax.marginal_tax_rate", 0.33),
     )
-    significance = settings.get(
-        "pairs_trading.cointegration_significance", DEFAULT_COINTEGRATION_SIGNIFICANCE
-    )
+    if significance is None:
+        significance = settings.get(
+            "pairs_trading.cointegration_significance", DEFAULT_COINTEGRATION_SIGNIFICANCE
+        )
 
     price_a, price_b = align_price_series(price_a, price_b)
     p_value = check_cointegration(price_a, price_b)
     if p_value >= significance:
-        return ValidationResult(False, f"not cointegrated (p-value {p_value:.3f} >= {significance})")
+        return ValidationResult(
+            False, f"not cointegrated (p-value {p_value:.4f} >= {significance:.4g})", p_value=p_value
+        )
 
     result = run_pairs_backtest(spec, price_a, price_b)
     if result.equity_curve.empty or not result.trades:
-        return ValidationResult(False, "pairs strategy produced no trades over the backtest period")
+        return ValidationResult(
+            False, "pairs strategy produced no trades over the backtest period", p_value=p_value
+        )
 
     min_sharpe = settings.get("validation_thresholds.min_sharpe_ratio", 1.5)
     max_drawdown = settings.get("validation_thresholds.max_drawdown_pct", 0.15)
@@ -63,6 +74,7 @@ def validate_pairs_strategy(
             False,
             f"only {len(result.trades)} trades over the backtest period "
             f"(need >= {min_trades} for the Sharpe/ProfitFactor estimate to be meaningful)",
+            p_value=p_value,
         )
 
     equity_curve = result.equity_curve
@@ -77,14 +89,21 @@ def validate_pairs_strategy(
         metrics = replace(metrics, net_return_nzd=net_return)
 
     if metrics.sharpe_ratio <= min_sharpe:
-        return ValidationResult(False, f"Sharpe {metrics.sharpe_ratio:.2f} <= required {min_sharpe}", metrics)
+        return ValidationResult(
+            False, f"Sharpe {metrics.sharpe_ratio:.2f} <= required {min_sharpe}", metrics, p_value=p_value
+        )
     if metrics.max_drawdown_pct >= max_drawdown:
         return ValidationResult(
-            False, f"MaxDD {metrics.max_drawdown_pct:.1%} >= limit {max_drawdown:.1%}", metrics
+            False, f"MaxDD {metrics.max_drawdown_pct:.1%} >= limit {max_drawdown:.1%}", metrics, p_value=p_value
         )
     if metrics.profit_factor <= min_profit_factor:
         return ValidationResult(
-            False, f"Profit factor {metrics.profit_factor:.2f} <= required {min_profit_factor}", metrics
+            False,
+            f"Profit factor {metrics.profit_factor:.2f} <= required {min_profit_factor}",
+            metrics,
+            p_value=p_value,
         )
 
-    return ValidationResult(True, f"passed all thresholds (cointegration p-value {p_value:.4f})", metrics)
+    return ValidationResult(
+        True, f"passed all thresholds (cointegration p-value {p_value:.4f})", metrics, p_value=p_value
+    )
