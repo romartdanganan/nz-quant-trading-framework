@@ -1395,5 +1395,194 @@
         "reason": "[SPY] Sharpe 0.01 <= required 1.5"
       }
     ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_T_VZ",
+    "ticker_a": "T",
+    "ticker_b": "VZ",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/T_VZ",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033970+00:00",
+    "id": "c808f1c4896b4e51909c225b8c4701ee",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.469 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_DUK_SO",
+    "ticker_a": "DUK",
+    "ticker_b": "SO",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/DUK_SO",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033974+00:00",
+    "id": "b2ea51756af64c6f99379b6e86914b4c",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.090 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_UNP_CSX",
+    "ticker_a": "UNP",
+    "ticker_b": "CSX",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/UNP_CSX",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033978+00:00",
+    "id": "450bcee2bd104cce86c8c6a8bdad4cf8",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.176 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_PG_CL",
+    "ticker_a": "PG",
+    "ticker_b": "CL",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/PG_CL",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033982+00:00",
+    "id": "b4c8b408745e4e4488a7ca1bc9e16a2c",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.651 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_WMT_TGT",
+    "ticker_a": "WMT",
+    "ticker_b": "TGT",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/WMT_TGT",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033985+00:00",
+    "id": "2137d5e82e8648689508621b9f2ba8c6",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.559 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_MCD_YUM",
+    "ticker_a": "MCD",
+    "ticker_b": "YUM",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/MCD_YUM",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033989+00:00",
+    "id": "66e20e79ee12424d8862060f80e674ba",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.759 >= 0.05)"
+      }
+    ]
+  },
+  {
+    "kind": "pairs",
+    "name": "pairs_SLB_HAL",
+    "ticker_a": "SLB",
+    "ticker_b": "HAL",
+    "lookback_period": 30,
+    "entry_zscore": 2.0,
+    "exit_zscore": 0.5,
+    "source_url": "internal://strategies/pairs_trading/classic_pairs/SLB_HAL",
+    "extraction_method": "rule",
+    "confidence": 1.0,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T13:04:44.033992+00:00",
+    "id": "6aabebd6b31947849e1f978972ce9e81",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "not cointegrated (p-value 0.404 >= 0.05)"
+      }
+    ]
   }
 ]

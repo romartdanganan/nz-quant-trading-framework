@@ -168,6 +168,17 @@ watchlists:
     - [HD, LOW]
     - [UPS, FDX]
     - [GM, F]
+    # Added 2026-09-01 — the 7 pairs above (retail, banking, payments, autos, logistics,
+    # energy majors, beverages) all failed cointegration too (closest was GM/F at
+    # p=0.060), so broadening further into regulated-duopoly and near-identical-business
+    # pairs, which structurally have the tightest long-run price linkage:
+    - [T, VZ]        # telecom duopoly, near-identical regulated business + dividend profile
+    - [DUK, SO]       # regulated electric utilities, similar rate-base/regulatory-driven growth
+    - [UNP, CSX]      # class-I rail duopoly (UNP west, CSX east), near-identical economics
+    - [PG, CL]        # consumer staples, near-identical brand/margin/growth profile
+    - [WMT, TGT]      # big-box general retail
+    - [MCD, YUM]      # quick-service restaurant franchisors
+    - [SLB, HAL]      # oilfield services duopoly, both track the same rig-count cycle
 
 data:
   historical_dir: data/historical
