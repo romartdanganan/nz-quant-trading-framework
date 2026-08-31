@@ -1174,5 +1174,226 @@
         "reason": "[SPY] Sharpe 0.01 <= required 1.5"
       }
     ]
+  },
+  {
+    "kind": "single",
+    "name": "MACD Signal Line Crossover",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/guiregueira/Simple_MACD_Backtest",
+    "extraction_method": "gemini",
+    "confidence": 0.5,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T12:40:45.927892+00:00",
+    "id": "bed9ac20fe254fafb7b0087c28d4e6a1",
+    "status": "rejected",
+    "metrics": {
+      "sharpe_ratio": 0.011883633544625202,
+      "max_drawdown_pct": 0.1348976123829757,
+      "profit_factor": 0.9793366234641,
+      "net_return_nzd": -2618.0033820395147
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "EMA/SMA Crossover",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "EMA",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "EMA",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/666-Gunmetalgospel/CashStashBot---Algorithmic-Trading-Backtest",
+    "extraction_method": "gemini",
+    "confidence": 0.75,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T12:41:02.287950+00:00",
+    "id": "b1ae28208e8447338cf5a75029d089ce",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] strategy produced no trades over the backtest period"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "RSI + Bollinger Bands",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 30.0,
+        "period": null
+      },
+      {
+        "indicator": "BOLLINGER_LOWER",
+        "operator": "<=",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "BOLLINGER_UPPER",
+        "operator": ">=",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/666-Gunmetalgospel/CashStashBot---Algorithmic-Trading-Backtest",
+    "extraction_method": "gemini",
+    "confidence": 0.8,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T12:41:02.287998+00:00",
+    "id": "5664b24583b24ce0a83f98a9ed501e12",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] strategy produced no trades over the backtest period"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "MACD Crossover",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/666-Gunmetalgospel/CashStashBot---Algorithmic-Trading-Backtest",
+    "extraction_method": "gemini",
+    "confidence": 0.8,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T12:41:02.288018+00:00",
+    "id": "82d8c19382e94430b9051b32eb1faff5",
+    "status": "rejected",
+    "metrics": {
+      "sharpe_ratio": 0.011883633544625202,
+      "max_drawdown_pct": 0.1348976123829757,
+      "profit_factor": 0.9793366234641,
+      "net_return_nzd": -2618.0033820395147
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "MACD Signal Line Crossover",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "MACD",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/chrismeim/MACD_Trading_Strategy_Backtest",
+    "extraction_method": "gemini",
+    "confidence": 0.6,
+    "raw_excerpt": "",
+    "created_at": "2026-08-31T12:42:40.964712+00:00",
+    "id": "a3a7ed646453411ebd6d51b2181d3dd5",
+    "status": "rejected",
+    "metrics": {
+      "sharpe_ratio": 0.011883633544625202,
+      "max_drawdown_pct": 0.1348976123829757,
+      "profit_factor": 0.9793366234641,
+      "net_return_nzd": -2618.0033820395147
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      }
+    ]
   }
 ]
