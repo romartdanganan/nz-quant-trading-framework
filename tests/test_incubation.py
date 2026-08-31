@@ -52,6 +52,14 @@ def test_record_snapshot_without_trade_does_not_touch_trades_list():
     assert "incubation_trades" not in record
 
 
+def test_record_snapshot_same_day_rerun_overwrites_instead_of_duplicating():
+    record = {}
+    record_snapshot(record, equity_value=100_000.0, as_of=date(2026, 1, 1))
+    record_snapshot(record, equity_value=100_250.0, as_of=date(2026, 1, 1))  # e.g. scheduled task re-fires same day
+
+    assert record["incubation_log"] == [{"date": "2026-01-01", "equity": 100_250.0}]
+
+
 def test_evaluate_incubation_continues_with_insufficient_data():
     record = {"incubation_log": [{"date": "2026-01-01", "equity": 100_000.0}]}
     decision = evaluate_incubation(record)

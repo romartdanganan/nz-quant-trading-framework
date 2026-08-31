@@ -37,7 +37,17 @@ def record_snapshot(
     record: dict, equity_value: float, as_of: date | None = None, trade: dict | None = None
 ) -> None:
     as_of = as_of or date.today()
-    record.setdefault("incubation_log", []).append({"date": as_of.isoformat(), "equity": equity_value})
+    log = record.setdefault("incubation_log", [])
+    # A second same-day invocation (e.g. someone runs the cycle manually and the scheduled
+    # task also fires that day — happened for real on 2026-08-31) must overwrite today's
+    # entry rather than append a duplicate: a repeated date in the log biases
+    # compute_metrics' Sharpe/MaxDD (a spurious zero-return day, or a double-counted
+    # position-state trade) without ever changing incubation_start_date-based day counting,
+    # so the corruption is silent rather than caught by the promotion gate.
+    if log and log[-1]["date"] == as_of.isoformat():
+        log[-1]["equity"] = equity_value
+    else:
+        log.append({"date": as_of.isoformat(), "equity": equity_value})
     if trade is not None:
         record.setdefault("incubation_trades", []).append(trade)
 
