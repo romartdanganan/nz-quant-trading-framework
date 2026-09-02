@@ -136,6 +136,22 @@ screener:
   reward_risk_ratio: 2.0                # target distance = stop distance * this ratio
   sentiment_headline_limit: 10
 
+# Data-driven strategy generation (2026-09-02) — a second discovery path alongside
+# research_pipeline above: strategy_research/generator/pattern_miner.py analyses real
+# historical OHLCV data directly (decile-bucketed forward-return significance testing) to
+# find genuinely new hypotheses, instead of only reading strategies other people published.
+pattern_mining:
+  # universe defaults to strategy_validation.universe below if unset here.
+  forward_return_horizon_days: 5
+  decile_count: 10
+  min_bucket_size: 30           # min samples per decile bucket for the t-test to be meaningful
+  significance_level: 0.05
+  # Bonferroni-divides the significance above by the total number of hypotheses ever tested
+  # by this module (persisted in data/cache/pattern_mining_stats.json, growing across runs —
+  # same reasoning as pairs_trading.multiple_testing_correction below: re-running the miner
+  # repeatedly must not be a backdoor to eventually clearing the bar by chance).
+  multiple_testing_correction: bonferroni
+
 # Pairs trading (Phase 6). Candidate pairs are seeded from watchlists.pairs_trading below.
 pairs_trading:
   cointegration_significance: 0.05      # Engle-Granger p-value must be below this to trade the pair

@@ -30,6 +30,9 @@ strategy_research/            # Phase 2 — automated discovery pipeline (see be
   distiller/gemini_client.py  #   Gemini API fallback for low-confidence/bulk input only
   vocabulary.py                #   controlled indicator/strategy-archetype vocabulary
   pipeline.py                  #   orchestrates scrape->extract->distill->translate->registry
+  generator/pattern_miner.py   #   a second, data-driven discovery path — see "Data-driven
+                                #   strategy generation" below; doesn't scrape or read anyone
+                                #   else's ideas, mines real OHLCV data for its own hypotheses
 quant_engine/
   validation/metrics.py      # Phase 4 — Sharpe/MaxDD/ProfitFactor from an equity curve + trades
   validation/overfit_guard.py# Phase 4 — walk-forward in/out-of-sample Sharpe decay check
@@ -148,6 +151,66 @@ Claude Code's own role stays as before: write and maintain all of this as determ
 Python — the pipeline *code* is engineered by Claude Code, but no step in the pipeline lets
 an LLM (Gemini or otherwise) decide entry/exit rules unsupervised; extraction output is
 always schema-validated before it can reach the backtester (see Guardrails below).
+
+## Data-driven strategy generation (pattern mining — a second discovery path)
+
+The scrape-based pipeline above only ever finds strategies *someone else already thought
+of and wrote down*. On 2026-09-02 the user pointed out this misses the actual point of
+being a successful quant: real edges more often come from analysing the market directly —
+looking at real data and finding what actually predicts returns — not from copying a
+published rule. `strategy_research/generator/pattern_miner.py` is that second path, wired
+to CLI option `[8]` (separate from option `[1]`'s scraping, since it's a genuinely
+different mechanism worth keeping visible as such).
+
+**Method**: for each (ticker, indicator, period) combination — currently `RSI` (periods 2,
+5, 10, 14) and `ZSCORE` (periods 10, 20, 50); the only two vocabulary indicators that are
+single numeric "how extreme is the market right now" value lines with a natural percentile
+interpretation, as opposed to a volume/volatility filter or a crossover-style computed line
+like MACD/VWAP/CHANNEL/BOLLINGER/KELTNER (a documented candidate for a future extension of
+this module, not yet done) — it computes the indicator's value line and the forward return
+N days later (`pattern_mining.forward_return_horizon_days`, default 5), buckets bars into
+deciles by indicator value, and runs a one-sided Welch's t-test on whether the most extreme
+decile's mean forward return is significantly higher than the rest of the sample. A
+significant *bottom*-decile result ("after this indicator is unusually low, price tends to
+bounce") becomes a `mean_reversion` candidate; a significant *top*-decile result ("after
+this indicator is unusually high, price tends to keep going") becomes a `momentum`
+candidate — both long-only, since `StrategySpec` has no short side yet. Entry/exit
+thresholds are calibrated from the ticker's own empirical distribution (the actual decile
+boundary and median), not textbook 30/70-style defaults — e.g. a real mined NVDA candidate
+came back as RSI(5) entry `< 28.77` / exit `> 55.59`, not `< 30` / `> 70`.
+
+**This does not bypass any existing guardrail.** A mined hypothesis becomes a plain
+`"candidate"` registry record exactly like a scraped one — it still has to clear the full
+backtest/validation/incubation gate (Sharpe > 1.5, MaxDD < 15%, Profit Factor > 1.3,
+min_trades >= 20, overfit_guard walk-forward decay check, then the incubation forward-test)
+before it's trusted with anything. The t-test significance is a candidate-generation
+triage step, not a validation gate. Live-verified 2026-09-02: an initial run across the
+`strategy_validation.universe` found 4 significant NVDA mean-reversion hypotheses
+(RSI 5/10/14 + ZSCORE 20, all describing the same underlying pullback-then-bounce
+phenomenon — correlated, not 4 independent edges), and `runner.py` correctly rejected all
+4 on `min_trades` (10-16 trades over the backtest window, below the required 20) — the
+downstream gate did exactly its job.
+
+**Multiple-testing correction, same discipline as pairs cointegration.** Testing many
+indicator/period/direction combinations across a universe is a textbook multiple-comparisons
+problem — scanning enough combinations will eventually turn up a "significant" result by
+pure chance even with zero real edge. `pattern_mining.significance_level` (default 0.05) is
+Bonferroni-divided by the total number of hypotheses this module has *ever* tested,
+persisted across runs in `data/cache/pattern_mining_stats.json` (gitignored, a runtime
+cache) — not just this run's count. This matters: without persisting the family size across
+runs, simply re-running the miner repeatedly would be a backdoor to eventually clearing the
+bar by chance, exactly the p-hacking this project explicitly refuses to do elsewhere (see
+the min_trades gate reasoning above, and `pairs_trading.multiple_testing_correction`). Set
+`pattern_mining.multiple_testing_correction: "none"` to disable and use the raw alpha
+(not recommended — for comparison/debugging only).
+
+**Honest limitation, not silently papered over**: forward-return windows overlap (a
+5-day-forward window advances one bar at a time), so consecutive samples in the t-test
+aren't independent — this understates the true p-value to some degree. The Bonferroni
+correction above plus the full downstream validation/incubation gate are the mitigations in
+place; a full autocorrelation-robust test (e.g. Newey-West) would be a further improvement,
+not yet implemented. Flag this if you ever see the miner's raw hit rate looking too good to
+be true relative to what clears full validation.
 
 ## NZ tax & timezone rules (do not get these wrong)
 

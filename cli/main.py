@@ -19,6 +19,7 @@ MENU = """
   [5] Research Briefing (news, earnings, fundamentals — for manual decisions)
   [6] Generate Dashboard (visual status of all strategies)
   [7] Discover Small/Mid-Cap Opportunities (real screener, not just mega-caps)
+  [8] Mine Strategies from Market Data (data-driven discovery, no scraping)
   [0] Exit
 """
 
@@ -171,6 +172,21 @@ def discover_opportunities() -> None:
     )
 
 
+def mine_strategies_from_market_data() -> None:
+    from strategy_research.generator import pattern_miner
+
+    console.print(
+        "[cyan]Mining historical price data for statistically significant indicator/"
+        "forward-return relationships (no scraping, no LLM) ...[/cyan]"
+    )
+    summary = pattern_miner.run()
+    console.print(summary)
+    console.print(
+        "[yellow]Mined candidates still have to clear the same backtest/validation/"
+        "incubation gate as everything else — this only proposes hypotheses.[/yellow]"
+    )
+
+
 def generate_dashboard() -> None:
     from dashboard.generator import generate_dashboard as build_dashboard
 
@@ -187,6 +203,7 @@ ACTIONS = {
     "5": run_research_briefing,
     "6": generate_dashboard,
     "7": discover_opportunities,
+    "8": mine_strategies_from_market_data,
 }
 
 
