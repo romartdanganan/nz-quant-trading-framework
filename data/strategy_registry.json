@@ -1592,5 +1592,97 @@
         "reason": "not cointegrated (p-value 0.404 >= 0.05)"
       }
     ]
+  },
+  {
+    "kind": "single",
+    "name": "EMA VWAP Crossover Strategy",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "EMA",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      },
+      {
+        "indicator": "VWAP",
+        "operator": ">",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "EMA",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      },
+      {
+        "indicator": "VWAP",
+        "operator": "<",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "5m",
+    "source_url": "https://github.com/vishnugovind10/emacrossover",
+    "extraction_method": "gemini",
+    "confidence": 0.85,
+    "raw_excerpt": "",
+    "created_at": "2026-09-02T07:25:48.641552+00:00",
+    "id": "f1d3f50705dd49b781e6c8b0e9aff8d7",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] strategy produced no trades over the backtest period"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "EUR/USD Z-Score Mean Reversion",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": "<",
+        "threshold": -2.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": ">=",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/XBT3K/MeanReversionAlgo",
+    "extraction_method": "gemini",
+    "confidence": 0.6,
+    "raw_excerpt": "",
+    "created_at": "2026-09-02T07:26:29.390992+00:00",
+    "id": "cc8fc8094f924be3b20a48aae07c8568",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 11 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
   }
 ]
