@@ -184,12 +184,28 @@ came back as RSI(5) entry `< 28.77` / exit `> 55.59`, not `< 30` / `> 70`.
 backtest/validation/incubation gate (Sharpe > 1.5, MaxDD < 15%, Profit Factor > 1.3,
 min_trades >= 20, overfit_guard walk-forward decay check, then the incubation forward-test)
 before it's trusted with anything. The t-test significance is a candidate-generation
-triage step, not a validation gate. Live-verified 2026-09-02: an initial run across the
-`strategy_validation.universe` found 4 significant NVDA mean-reversion hypotheses
-(RSI 5/10/14 + ZSCORE 20, all describing the same underlying pullback-then-bounce
-phenomenon — correlated, not 4 independent edges), and `runner.py` correctly rejected all
-4 on `min_trades` (10-16 trades over the backtest window, below the required 20) — the
-downstream gate did exactly its job.
+triage step, not a validation gate.
+
+**A mined candidate must always be validated against its own origin ticker, not just the
+fixed universe.** `runner.py` searches `strategy_validation.universe` for whichever ticker
+a candidate best fits — correct for a scraped/classic candidate (genuinely ticker-agnostic,
+meant to be searched), but a mined candidate's thresholds are calibrated to one specific
+ticker's own empirical distribution and are meaningless on any other. A real bug found
+2026-09-02: an initial run mined 4 NVDA + 4 GAP/SGRY hypotheses, and `run_validation()`
+validated (and rejected) all 8 purely against the fixed universe, which didn't contain
+GAP/NVDA/SGRY at all — the recorded rejection reasons were testing the wrong data entirely.
+Fixed: `runner._mined_ticker()` parses the ticker straight out of a
+`"internal://pattern_mining/{ticker}/..."` source_url, `run_validation()` always adds it to
+the universe it loads, and `_all_results_across_universe()` prefers that ticker's own
+result for the reported reason over whichever universe ticker happened to fail first.
+Re-validated correctly: all 8 are still honestly rejected (mostly `min_trades` — a
+decile-extreme mean-reversion entry only fires a handful of times in a 2-year window, not
+enough to clear 20 trades; one NVDA variant instead failed `MaxDD`), same conclusion, but
+now for the real reason on the real data. This is also why the mining universe itself is
+worth broadening beyond `strategy_validation.universe`'s mega-caps —
+`quant_engine/screeners/opportunity_finder.discover_candidate_tickers()` (small/mid-caps,
+per CLAUDE.md's own noted reasoning that mega-caps are the hardest place to find an edge)
+is a good source to mine against too, and is what surfaced the GAP/SGRY hypotheses above.
 
 **Multiple-testing correction, same discipline as pairs cointegration.** Testing many
 indicator/period/direction combinations across a universe is a textbook multiple-comparisons
