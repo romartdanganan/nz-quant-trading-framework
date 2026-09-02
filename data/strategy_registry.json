@@ -1713,7 +1713,12 @@
     "created_at": "2026-09-02T08:30:12.117123+00:00",
     "id": "283c2f17a1c54db7a8ab87ec3f2309e4",
     "status": "rejected",
-    "metrics": null,
+    "metrics": {
+      "sharpe_ratio": 1.5377143604558776,
+      "max_drawdown_pct": 0.1807299226860594,
+      "profit_factor": 9.171138878012881,
+      "net_return_nzd": 183444.50982154656
+    },
     "history": [
       {
         "status": "candidate",
@@ -1722,6 +1727,22 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 16 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 16 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[NVDA] MaxDD 18.1% >= limit 15.0%"
       }
     ]
   },
@@ -1762,6 +1783,22 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 14 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 14 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[NVDA] only 14 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -1802,6 +1839,22 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 10 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 10 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[NVDA] only 11 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -1842,6 +1895,246 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 12 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 12 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[NVDA] only 11 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_rsi14_bounce_SGRY",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 30.687829029016477,
+        "period": 14
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 46.16698383311066,
+        "period": 14
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/SGRY/RSI/14/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999991965784676,
+    "raw_excerpt": "Mined from SGRY price history: RSI(14) in its most extreme bounce decile preceded a mean forward return of 3.75% vs. -0.53% baseline (n=50, one-sided p=0.00000).",
+    "created_at": "2026-09-02T08:54:33.812169+00:00",
+    "id": "842e73b76b2c49a7986af8fdf246ca4d",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 4 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 4 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SGRY] only 8 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_rsi14_bounce_GAP",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 35.84376460344034,
+        "period": 14
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 48.90810141960801,
+        "period": 14
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/GAP/RSI/14/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999619462382178,
+    "raw_excerpt": "Mined from GAP price history: RSI(14) in its most extreme bounce decile preceded a mean forward return of 3.16% vs. 0.35% baseline (n=50, one-sided p=0.00004).",
+    "created_at": "2026-09-02T08:54:33.812243+00:00",
+    "id": "ee4507826a5a4be38ce29ac13ec1d99e",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[GAP] only 8 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_zscore20_bounce_GAP",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": "<",
+        "threshold": -1.4683780386958627,
+        "period": 20
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": ">",
+        "threshold": 0.08683138444437109,
+        "period": 20
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/GAP/ZSCORE/20/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999587015254043,
+    "raw_excerpt": "Mined from GAP price history: ZSCORE(20) in its most extreme bounce decile preceded a mean forward return of 3.80% vs. 0.32% baseline (n=48, one-sided p=0.00004).",
+    "created_at": "2026-09-02T08:54:33.812268+00:00",
+    "id": "da63064c61f54b5f9da55105399a27cd",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 13 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 13 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[GAP] only 14 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_zscore50_bounce_GAP",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": "<",
+        "threshold": -1.5941039329711035,
+        "period": 50
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "ZSCORE",
+        "operator": ">",
+        "threshold": -0.06618897214988353,
+        "period": 50
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/GAP/ZSCORE/50/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999993409310458,
+    "raw_excerpt": "Mined from GAP price history: ZSCORE(50) in its most extreme bounce decile preceded a mean forward return of 4.03% vs. 0.29% baseline (n=45, one-sided p=0.00000).",
+    "created_at": "2026-09-02T08:54:33.812283+00:00",
+    "id": "321e4d44be604ce19418bcdf32b4af67",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 4 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a real bug in runner.py \u2014 mined candidates were only tested against the fixed strategy_validation.universe, which never included their own origin ticker (e.g. this GAP/SGRY/NVDA-calibrated spec was validated against SPY/AAPL instead), making the trade-count rejection meaningless; runner.py now always includes a mined candidate's own ticker in the universe it validates against (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 4 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: found and fixed a second related bug \u2014 the reported rejection reason cited whichever universe ticker failed first (usually SPY), not the mined ticker itself, even though the previous fix now correctly tests against it; runner.py now always prefers a mined candidate's own origin ticker for the reported reason (see CLAUDE.md, 2026-09-02)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[GAP] only 6 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }

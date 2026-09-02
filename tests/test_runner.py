@@ -88,6 +88,13 @@ def test_run_validation_promotes_every_passing_ticker_best_one_in_place(tmp_path
     assert clone["name"] == "test [SPY]"
 
 
+def test_mined_ticker_parses_pattern_mining_source_urls():
+    assert runner._mined_ticker("internal://pattern_mining/GAP/RSI/14/bounce") == "GAP"
+    assert runner._mined_ticker("internal://pattern_mining/NVDA/ZSCORE/20/bounce") == "NVDA"
+    assert runner._mined_ticker("https://example.com/some-repo") is None
+    assert runner._mined_ticker("internal://strategies/mean_reversion/classic_rsi_reversion") is None
+
+
 def test_run_validation_with_no_candidates_is_a_noop(tmp_path):
     registry = StrategyRegistry(tmp_path / "registry.json")
     summary = runner.run_validation(registry=registry)
@@ -117,6 +124,57 @@ def test_run_validation_handles_missing_price_data_for_entire_universe(tmp_path,
     summary = runner.run_validation(registry=registry, universe=["SPY", "AAPL"])
 
     assert summary == {"candidates": 1, "validated": 0, "rejected": 0, "errored": 1}
+
+
+def test_run_validation_always_includes_a_mined_candidates_own_ticker(tmp_path, monkeypatch):
+    # A pattern-mined spec's thresholds are calibrated to one specific ticker's own
+    # historical distribution (see runner._mined_ticker) — even if that ticker isn't in
+    # the configured universe, it must still be loaded and validated against.
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    record = registry.add_candidate(make_spec("internal://pattern_mining/GAP/RSI/14/bounce"))
+
+    requested_tickers = []
+
+    def fake_load(ticker, start, end):
+        requested_tickers.append(ticker)
+        return pd.DataFrame({"close": [1, 2, 3]})
+
+    monkeypatch.setattr(runner, "load_price_data", fake_load)
+    monkeypatch.setattr(runner, "validate_strategy", lambda spec, data: ValidationResult(True, "ok", Metrics(2.0, 0.05, 2.0)))
+
+    summary = runner.run_validation(registry=registry, universe=["SPY", "AAPL"])
+
+    # all three tickers pass here -> one in-place + two clones, one of which must be GAP
+    assert "GAP" in requested_tickers
+    assert summary["validated"] == 3
+    validated_tickers = {r["ticker"] for r in registry.list(status="validated")}
+    assert validated_tickers == {"SPY", "AAPL", "GAP"}
+
+
+def test_run_validation_reports_mined_tickers_own_failure_reason(tmp_path, monkeypatch):
+    # SPY/AAPL (checked first, per universe order) fail too, but GAP (the mined candidate's
+    # own origin ticker) is what its thresholds were actually calibrated to — the recorded
+    # rejection reason must cite GAP's own result, not whichever ticker failed first.
+    registry = StrategyRegistry(tmp_path / "registry.json")
+    record = registry.add_candidate(make_spec("internal://pattern_mining/GAP/RSI/14/bounce"))
+
+    def fake_load(ticker, start, end):
+        df = pd.DataFrame({"close": [1, 2, 3]})
+        df.attrs["ticker"] = ticker
+        return df
+
+    def fake_validate(spec, price_data):
+        ticker = price_data.attrs["ticker"]
+        return ValidationResult(False, f"failed for {ticker}", Metrics(0.5, 0.05, 2.0))
+
+    monkeypatch.setattr(runner, "load_price_data", fake_load)
+    monkeypatch.setattr(runner, "validate_strategy", fake_validate)
+
+    summary = runner.run_validation(registry=registry, universe=["SPY", "AAPL"])
+
+    assert summary["rejected"] == 1
+    reason = registry.get(record["id"])["history"][-1]["reason"]
+    assert reason == "[GAP] failed for GAP"
 
 
 def test_run_validation_skips_tickers_with_missing_data_but_uses_the_rest(tmp_path, monkeypatch):

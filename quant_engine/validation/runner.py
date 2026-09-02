@@ -28,6 +28,24 @@ logger = logging.getLogger(__name__)
 DEFAULT_UNIVERSE = ["SPY"]
 DEFAULT_LOOKBACK_DAYS = 730  # ~2 years
 
+_MINED_SOURCE_PREFIX = "internal://pattern_mining/"
+
+
+def _mined_ticker(source_url: str) -> str | None:
+    """A pattern-mined candidate's source_url encodes the exact ticker its entry/exit
+    thresholds were calibrated against (see strategy_research/generator/pattern_miner.py):
+    "internal://pattern_mining/{ticker}/{indicator}/{period}/{direction}". Unlike a
+    scraped/classic StrategySpec (genuinely ticker-agnostic, meant to be searched across
+    the whole universe), a mined spec's thresholds are meaningless on any ticker other than
+    the one they were derived from — validating it only against the generic fixed universe
+    (which may not even contain that ticker) would silently test the wrong thing. Returns
+    None for any non-mined source_url.
+    """
+    if not source_url.startswith(_MINED_SOURCE_PREFIX):
+        return None
+    parts = source_url[len(_MINED_SOURCE_PREFIX):].split("/")
+    return parts[0] if parts and parts[0] else None
+
 
 def _load_universe_price_data(universe: list[str], lookback_days: int) -> dict[str, object]:
     end = date.today()
@@ -42,7 +60,7 @@ def _load_universe_price_data(universe: list[str], lookback_days: int) -> dict[s
 
 
 def _all_results_across_universe(
-    spec: StrategySpec, price_data_by_ticker: dict[str, object]
+    spec: StrategySpec, price_data_by_ticker: dict[str, object], preferred_fail_ticker: str | None = None
 ) -> tuple[list[tuple[str, ValidationResult]], str | None, ValidationResult | None]:
     """Returns (passing_results, best_fail_ticker, best_fail_result).
 
@@ -51,6 +69,13 @@ def _all_results_across_universe(
     incubate on all of them concurrently instead of the pipeline arbitrarily picking one
     winner and discarding the rest (CLAUDE.md: don't waste a candidate that already
     cleared every threshold on a second instrument).
+
+    preferred_fail_ticker (a mined candidate's own origin ticker, see _mined_ticker) always
+    wins the reported failing reason over whichever ticker merely happened to be checked
+    first — otherwise the registry's rejection reason could cite an arbitrary universe
+    ticker's failure (e.g. SPY) for a strategy whose thresholds were never calibrated to
+    SPY at all, which is a meaningless reason to keep as the permanent record of why a
+    mined candidate failed.
     """
     passing: list[tuple[str, ValidationResult]] = []
     best_fail_ticker = best_fail_result = None
@@ -59,7 +84,7 @@ def _all_results_across_universe(
         result = validate_strategy(spec, price_data)
         if result.passed:
             passing.append((ticker, result))
-        elif best_fail_result is None:
+        elif best_fail_result is None or ticker == preferred_fail_ticker:
             best_fail_ticker, best_fail_result = ticker, result
 
     passing.sort(key=lambda item: item[1].metrics.sharpe_ratio, reverse=True)
@@ -78,6 +103,8 @@ def run_validation(
         return {"candidates": 0, "validated": 0, "rejected": 0, "errored": 0}
 
     universe = universe or settings.get("strategy_validation.universe", DEFAULT_UNIVERSE)
+    mined_tickers = {t for r in candidates for t in [_mined_ticker(r.get("source_url", ""))] if t}
+    universe = list(dict.fromkeys([*universe, *mined_tickers]))  # dedupe, keep order, always include mined origins
     price_data_by_ticker = _load_universe_price_data(universe, lookback_days)
 
     if not price_data_by_ticker:
@@ -92,7 +119,10 @@ def run_validation(
             errored += 1
             continue
 
-        passing, fail_ticker, fail_result = _all_results_across_universe(spec, price_data_by_ticker)
+        preferred_fail_ticker = _mined_ticker(record.get("source_url", ""))
+        passing, fail_ticker, fail_result = _all_results_across_universe(
+            spec, price_data_by_ticker, preferred_fail_ticker
+        )
 
         if passing:
             best_ticker, best_result = passing[0]
