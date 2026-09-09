@@ -596,6 +596,30 @@
       {
         "date": "2026-09-02",
         "equity": 100000.0
+      },
+      {
+        "date": "2026-09-03",
+        "equity": 100000.0
+      },
+      {
+        "date": "2026-09-04",
+        "equity": 100000.0
+      },
+      {
+        "date": "2026-09-06",
+        "equity": 100000.0
+      },
+      {
+        "date": "2026-09-07",
+        "equity": 100000.0
+      },
+      {
+        "date": "2026-09-08",
+        "equity": 100000.0
+      },
+      {
+        "date": "2026-09-09",
+        "equity": 100000.0
       }
     ],
     "incubation_trades": [],
@@ -2215,6 +2239,201 @@
       {
         "status": "rejected",
         "reason": "[SENS] only 14 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "Stoch RSI + Supertrend Momentum",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 50.0,
+        "period": null
+      },
+      {
+        "indicator": "EMA",
+        "operator": ">",
+        "threshold": 0.0,
+        "period": null
+      },
+      {
+        "indicator": "ATR",
+        "operator": ">",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 50.0,
+        "period": null
+      }
+    ],
+    "timeframe": "5m",
+    "source_url": "https://github.com/chandrunit/nifty-options-backtester",
+    "extraction_method": "gemini",
+    "confidence": 0.6,
+    "raw_excerpt": "",
+    "created_at": "2026-09-09T00:16:19.768289+00:00",
+    "id": "426fc8edafcd443d9fbb39f71a1511c0",
+    "status": "rejected",
+    "metrics": {
+      "sharpe_ratio": 0.7254166730017758,
+      "max_drawdown_pct": 0.10709033122227074,
+      "profit_factor": 1.7104921708072804,
+      "net_return_nzd": 19879.301320966715
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] Sharpe 0.73 <= required 1.5"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "EMA/VWAP Breakout",
+    "archetype": "breakout",
+    "entry_conditions": [
+      {
+        "indicator": "VWAP",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      },
+      {
+        "indicator": "EMA",
+        "operator": "crosses_above",
+        "threshold": 0.0,
+        "period": null
+      },
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 50.0,
+        "period": null
+      },
+      {
+        "indicator": "VOLUME",
+        "operator": ">",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "VWAP",
+        "operator": "crosses_below",
+        "threshold": 0.0,
+        "period": null
+      }
+    ],
+    "timeframe": "5m",
+    "source_url": "https://github.com/chandrunit/nifty-options-backtester",
+    "extraction_method": "gemini",
+    "confidence": 0.65,
+    "raw_excerpt": "",
+    "created_at": "2026-09-09T00:16:19.768344+00:00",
+    "id": "a9a069a1025c4ca5b5db431b30d693e3",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] strategy produced no trades over the backtest period"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "50/200 SMA Crossover Strategy",
+    "archetype": "momentum",
+    "entry_conditions": [
+      {
+        "indicator": "SMA",
+        "operator": "crosses_above",
+        "threshold": 200.0,
+        "period": null
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "SMA",
+        "operator": "crosses_below",
+        "threshold": 200.0,
+        "period": null
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "https://github.com/pranavvss/Automated-Trading-Bot-v1",
+    "extraction_method": "gemini",
+    "confidence": 0.85,
+    "raw_excerpt": "",
+    "created_at": "2026-09-09T00:17:05.683169+00:00",
+    "id": "a77f5d0598444ae6a637de4a2151479d",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] strategy produced no trades over the backtest period"
+      }
+    ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_rsi14_bounce_LENZ",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 28.740936968979643,
+        "period": 14
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 44.04885310100593,
+        "period": 14
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/LENZ/RSI/14/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.999996707542906,
+    "raw_excerpt": "Mined from LENZ price history: RSI(14) in its most extreme bounce decile preceded a mean forward return of 5.54% vs. -0.72% baseline (n=50, one-sided p=0.00000).",
+    "created_at": "2026-09-09T00:19:30.818441+00:00",
+    "id": "845c02890c954ac59ece87b6c1af247d",
+    "status": "rejected",
+    "metrics": null,
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "rejected",
+        "reason": "[LENZ] only 9 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   }
