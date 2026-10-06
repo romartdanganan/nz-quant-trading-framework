@@ -64,6 +64,7 @@ Thumbs.db
 
 # --- Claude Code local state ---
 .claude/
+CLAUDE.md
 
 # --- IB Gateway / TWS local state ---
 ibgateway/
