@@ -2548,5 +2548,139 @@
         "reason": "[LENZ] only 9 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
+  },
+  {
+    "kind": "single",
+    "name": "mined_rsi2_bounce_DXC",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 6.893795736785001,
+        "period": 2
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 48.18993922957321,
+        "period": 2
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/DXC/RSI/2/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999962263244997,
+    "raw_excerpt": "Mined from DXC price history: RSI(2) in its most extreme bounce decile preceded a mean forward return of 3.05% vs. -0.39% baseline (n=50, one-sided p=0.00000).",
+    "created_at": "2026-10-06T03:16:08.669416+00:00",
+    "id": "feb47226848f4d50883b98da7b9a23d3",
+    "status": "incubating",
+    "metrics": {
+      "sharpe_ratio": 1.5710007297875046,
+      "max_drawdown_pct": 0.06760388399397112,
+      "profit_factor": 6.46021227345888,
+      "net_return_nzd": 75943.90521804786
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "validated",
+        "reason": "[GOOGL] passed all validation thresholds"
+      },
+      {
+        "status": "incubating",
+        "reason": "forward-test started"
+      }
+    ],
+    "ticker": "GOOGL",
+    "incubation_start_date": "2026-10-06",
+    "baseline_metrics": {
+      "sharpe_ratio": 1.5710007297875046,
+      "max_drawdown_pct": 0.06760388399397112,
+      "profit_factor": 6.46021227345888,
+      "net_return_nzd": 75943.90521804786
+    },
+    "incubation_log": [
+      {
+        "date": "2026-10-06",
+        "equity": 100000.0
+      }
+    ],
+    "incubation_trades": [],
+    "incubation_starting_equity": 100000.0,
+    "incubation_position": null,
+    "incubation_realized_pnl": 0.0
+  },
+  {
+    "kind": "single",
+    "name": "mined_rsi5_bounce_DXC",
+    "archetype": "mean_reversion",
+    "entry_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": "<",
+        "threshold": 24.301325870035516,
+        "period": 5
+      }
+    ],
+    "exit_conditions": [
+      {
+        "indicator": "RSI",
+        "operator": ">",
+        "threshold": 46.90065913998056,
+        "period": 5
+      }
+    ],
+    "timeframe": "1d",
+    "source_url": "internal://pattern_mining/DXC/RSI/5/bounce",
+    "extraction_method": "rule",
+    "confidence": 0.9999989051017772,
+    "raw_excerpt": "Mined from DXC price history: RSI(5) in its most extreme bounce decile preceded a mean forward return of 3.32% vs. -0.39% baseline (n=50, one-sided p=0.00000).",
+    "created_at": "2026-10-06T03:16:08.669458+00:00",
+    "id": "1a63d058251e4266bb006749d0c1d7a8",
+    "status": "incubating",
+    "metrics": {
+      "sharpe_ratio": 1.5735618370352054,
+      "max_drawdown_pct": 0.10428576253459519,
+      "profit_factor": 16.412549893843014,
+      "net_return_nzd": 147504.31911572444
+    },
+    "history": [
+      {
+        "status": "candidate",
+        "reason": "discovered by pipeline"
+      },
+      {
+        "status": "validated",
+        "reason": "[DXC] passed all validation thresholds"
+      },
+      {
+        "status": "incubating",
+        "reason": "forward-test started"
+      }
+    ],
+    "ticker": "DXC",
+    "incubation_start_date": "2026-10-06",
+    "baseline_metrics": {
+      "sharpe_ratio": 1.5735618370352054,
+      "max_drawdown_pct": 0.10428576253459519,
+      "profit_factor": 16.412549893843014,
+      "net_return_nzd": 147504.31911572444
+    },
+    "incubation_log": [
+      {
+        "date": "2026-10-06",
+        "equity": 100000.0
+      }
+    ],
+    "incubation_trades": [],
+    "incubation_starting_equity": 100000.0,
+    "incubation_position": null,
+    "incubation_realized_pnl": 0.0
   }
 ]
