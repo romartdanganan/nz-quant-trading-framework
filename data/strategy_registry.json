@@ -92,6 +92,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: fixed runner.py reporting the first-iterated universe ticker (SPY) as the rejection reason instead of the closest-to-passing one across all 22 tickers, so previous SPY-only reasons were misleading diagnostics (2026-10-06)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 2 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -124,10 +132,10 @@
     "id": "2080ab70815a40d4a312c9d06eacfc88",
     "status": "rejected",
     "metrics": {
-      "sharpe_ratio": 0.011859836848125766,
-      "max_drawdown_pct": 0.1348976129629084,
-      "profit_factor": 0.9793366204843804,
-      "net_return_nzd": -3347.303456593206
+      "sharpe_ratio": 0.8328222212229487,
+      "max_drawdown_pct": 0.1678054216551097,
+      "profit_factor": 1.8782047512821127,
+      "net_return_nzd": 61524.16486032011
     },
     "history": [
       {
@@ -193,6 +201,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] Sharpe 0.01 <= required 1.5"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: fixed runner.py reporting the first-iterated universe ticker (SPY) as the rejection reason instead of the closest-to-passing one across all 22 tickers, so previous SPY-only reasons were misleading diagnostics (2026-10-06)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[GOOGL] Sharpe 0.83 <= required 1.5"
       }
     ]
   },
@@ -291,6 +307,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 1 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: fixed runner.py reporting the first-iterated universe ticker (SPY) as the rejection reason instead of the closest-to-passing one across all 22 tickers, so previous SPY-only reasons were misleading diagnostics (2026-10-06)"
       },
       {
         "status": "rejected",
@@ -768,6 +792,14 @@
       {
         "status": "rejected",
         "reason": "[SPY] only 5 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: fixed runner.py reporting the first-iterated universe ticker (SPY) as the rejection reason instead of the closest-to-passing one across all 22 tickers, so previous SPY-only reasons were misleading diagnostics (2026-10-06)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 4 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
       }
     ]
   },
@@ -836,6 +868,14 @@
       {
         "status": "candidate",
         "reason": "reset for re-validation: runner.py now promotes every universe ticker a strategy genuinely passes on (not just the single best), so multiple candidates can incubate concurrently instead of the pipeline discarding extra winners (2026-08-29)"
+      },
+      {
+        "status": "rejected",
+        "reason": "[SPY] only 3 trades over the backtest period (need >= 20 for the Sharpe/ProfitFactor estimate to be meaningful)"
+      },
+      {
+        "status": "candidate",
+        "reason": "reset for re-validation: fixed runner.py reporting the first-iterated universe ticker (SPY) as the rejection reason instead of the closest-to-passing one across all 22 tickers, so previous SPY-only reasons were misleading diagnostics (2026-10-06)"
       },
       {
         "status": "rejected",

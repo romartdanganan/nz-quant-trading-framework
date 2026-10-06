@@ -71,20 +71,35 @@ def _all_results_across_universe(
     cleared every threshold on a second instrument).
 
     preferred_fail_ticker (a mined candidate's own origin ticker, see _mined_ticker) always
-    wins the reported failing reason over whichever ticker merely happened to be checked
-    first — otherwise the registry's rejection reason could cite an arbitrary universe
-    ticker's failure (e.g. SPY) for a strategy whose thresholds were never calibrated to
-    SPY at all, which is a meaningless reason to keep as the permanent record of why a
-    mined candidate failed.
+    wins the reported failing reason over every other ticker — otherwise the registry's
+    rejection reason could cite an arbitrary universe ticker's failure (e.g. SPY) for a
+    strategy whose thresholds were never calibrated to SPY at all, which is a meaningless
+    reason to keep as the permanent record of why a mined candidate failed. For every other
+    (genuinely ticker-agnostic) candidate, the reported failure is the closest-to-passing
+    one (highest Sharpe among failures) across the whole universe — not just whichever
+    ticker happened to be checked first. A real bug found 2026-10-06: this used to lock
+    onto the first ticker iterated (SPY, since dict order follows universe order) and never
+    reconsider, so every classic strategy's recorded rejection reason was SPY's result even
+    though all other universe tickers were in fact backtested too — it never changed any
+    pass/fail outcome (a real pass on any ticker still promotes correctly), but it hid which
+    ticker actually came closest and why.
     """
     passing: list[tuple[str, ValidationResult]] = []
     best_fail_ticker = best_fail_result = None
+
+    def _fail_rank(result: ValidationResult) -> float:
+        return result.metrics.sharpe_ratio if result.metrics is not None else float("-inf")
 
     for ticker, price_data in price_data_by_ticker.items():
         result = validate_strategy(spec, price_data)
         if result.passed:
             passing.append((ticker, result))
-        elif best_fail_result is None or ticker == preferred_fail_ticker:
+            continue
+        if preferred_fail_ticker is not None:
+            if ticker == preferred_fail_ticker:
+                best_fail_ticker, best_fail_result = ticker, result
+            continue
+        if best_fail_result is None or _fail_rank(result) > _fail_rank(best_fail_result):
             best_fail_ticker, best_fail_result = ticker, result
 
     passing.sort(key=lambda item: item[1].metrics.sharpe_ratio, reverse=True)
