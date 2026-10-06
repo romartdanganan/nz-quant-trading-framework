@@ -1,4 +1,3 @@
-import feedparser
 import requests
 
 from strategy_research.scrapers import arxiv_scraper, blog_scraper, forum_scraper, github_scraper
@@ -25,6 +24,7 @@ class FakeResponse:
         self._payload = payload
         self.status_code = status_code
         self.text = text
+        self.content = text.encode("utf-8")
 
     def raise_for_status(self):
         pass
@@ -161,12 +161,25 @@ def test_github_search_repositories_gives_up_after_repeated_timeouts(monkeypatch
     assert github_scraper.search_repositories("mean reversion") == []
 
 
-def test_fetch_feed_entries_parses_local_feed():
-    results = blog_scraper.fetch_feed_entries(feed_urls=[SAMPLE_RSS])
+def test_fetch_feed_entries_parses_fetched_feed(monkeypatch):
+    # blog_scraper fetches via requests (explicit timeout) rather than handing feedparser a
+    # bare URL, since feedparser's own fetch has no timeout and can hang indefinitely.
+    monkeypatch.setattr(blog_scraper.requests, "get", lambda *a, **k: FakeResponse(text=SAMPLE_RSS))
+
+    results = blog_scraper.fetch_feed_entries(feed_urls=["https://blog.example.com/feed"])
 
     assert len(results) == 1
     assert results[0].title == "Momentum Post"
     assert results[0].url == "https://blog.example.com/post"
+
+
+def test_fetch_feed_entries_degrades_gracefully_on_request_failure(monkeypatch):
+    def raise_timeout(*a, **k):
+        raise requests.Timeout("too slow")
+
+    monkeypatch.setattr(blog_scraper.requests, "get", raise_timeout)
+
+    assert blog_scraper.fetch_feed_entries(feed_urls=["https://blog.example.com/feed"]) == []
 
 
 def test_forum_search_posts_returns_empty_without_credentials(monkeypatch):
@@ -177,8 +190,9 @@ def test_forum_search_posts_returns_empty_without_credentials(monkeypatch):
 
 
 def test_arxiv_search_papers_parses_entries(monkeypatch):
-    real_parse = feedparser.parse  # capture before patching — feedparser is a shared module
-    monkeypatch.setattr(arxiv_scraper.feedparser, "parse", lambda url: real_parse(SAMPLE_ARXIV_ATOM))
+    # arxiv_scraper fetches via requests (explicit timeout) rather than handing feedparser a
+    # bare URL, same reason as blog_scraper above.
+    monkeypatch.setattr(arxiv_scraper.requests, "get", lambda *a, **k: FakeResponse(text=SAMPLE_ARXIV_ATOM))
 
     results = arxiv_scraper.search_papers("mean reversion", max_results=5)
 
@@ -188,9 +202,9 @@ def test_arxiv_search_papers_parses_entries(monkeypatch):
 
 
 def test_arxiv_search_papers_handles_parse_error(monkeypatch):
-    def raise_error(url):
-        raise Exception("boom")
+    def raise_timeout(*a, **k):
+        raise requests.Timeout("too slow")
 
-    monkeypatch.setattr(arxiv_scraper.feedparser, "parse", raise_error)
+    monkeypatch.setattr(arxiv_scraper.requests, "get", raise_timeout)
 
     assert arxiv_scraper.search_papers("mean reversion") == []

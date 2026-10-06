@@ -3,6 +3,10 @@
 does, since arXiv's export API returns a standard Atom feed — paper abstracts often carry
 genuinely concrete, numeric strategy detail (specific parameter values from a backtested
 study) that a one-line GitHub repo description or forum post title never does.
+
+Fetches via requests with an explicit timeout rather than handing feedparser the bare URL
+(same fix and reason as blog_scraper.py — feedparser's own network fetch has no timeout at
+all and can hang indefinitely, found 2026-10-06 via the new daily scheduled discovery task).
 """
 from __future__ import annotations
 
@@ -10,18 +14,22 @@ import logging
 from urllib.parse import quote
 
 import feedparser
+import requests
 
 from strategy_research.scrapers.models import RawSource
 
 logger = logging.getLogger(__name__)
 
 ARXIV_API_URL = "http://export.arxiv.org/api/query"
+REQUEST_TIMEOUT_SECONDS = 20
 
 
 def search_papers(query: str, max_results: int = 5) -> list[RawSource]:
     url = f"{ARXIV_API_URL}?search_query=all:{quote(query)}&start=0&max_results={max_results}"
     try:
-        parsed = feedparser.parse(url)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
+        response.raise_for_status()
+        parsed = feedparser.parse(response.content)
     except Exception as exc:
         logger.warning("arXiv search failed for query %r: %s", query, exc)
         return []
